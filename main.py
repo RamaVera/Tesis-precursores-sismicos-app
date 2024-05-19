@@ -34,6 +34,11 @@ def send_command(sender, app_data, user_data):
     print(f"Comando ejecutado: Fecha Inicio: {start_date}, Fecha Fin: {end_date}")
 
 
+def connect_to_broker(sender, app_data, user_data):
+    # Aquí iría el código para conectar al broker
+    dpg.configure_item(state_label, label="Conectado", color=[0, 255, 0])
+
+
 def main():
     # Obtener el tamaño de la pantalla
     monitor = get_monitors()[0]
@@ -48,56 +53,73 @@ def main():
 
     dpg.create_context()
 
-    with dpg.window(label="Ventana Principal", width=window_width + 20, height=window_height + 20):
-        # Configurar el layout de la ventana principal
-        with dpg.group(horizontal=True):
-            with dpg.group():
-                # Widget para ingresar fechas (ARRIBA IZQUIERDA)
+    with dpg.window(label="Tesis Precursores Sismicos", width=window_width + 20, height=window_height + 60):
+        dpg.add_tab_bar()
+        with dpg.tab_bar():
+            with dpg.tab(label="Conexión"):
+                # Configurar el layout de la ventana de conexión
                 with dpg.child_window(width=window_width // 2 - 10, height=window_height // 2 - 10):
-                    dpg.add_text("Fecha y hora Inicio:")
-                    global year_input, month_input, day_input, hour_input, minute_input
-                    with dpg.group(horizontal=True):
-                        year_input = dpg.add_input_text(label="-", width=35, hint="YYYY")
-                        month_input = dpg.add_input_text(label="-", width=25, hint="MM")
-                        day_input = dpg.add_input_text(label="-", width=25, hint="DD")
-                        hour_input = dpg.add_input_text(label=":", width=25, hint="HH")
-                        minute_input = dpg.add_input_text(label="", width=25, hint="MM")
+                    dpg.add_text("Conexión al Broker")
+                    dpg.add_button(label="Conectar", callback=connect_to_broker)
+                    global state_label
+                    state_label = dpg.add_text("Desconectado", color=[255, 0, 0])
 
-                    dpg.add_text("Fecha y hora Fin:")
-                    global year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end
-                    with dpg.group(horizontal=True):
-                        year_input_end = dpg.add_input_text(label="-", width=35, hint="YYYY")
-                        month_input_end = dpg.add_input_text(label="-", width=25, hint="MM")
-                        day_input_end = dpg.add_input_text(label="-", width=25, hint="DD")
-                        hour_input_end = dpg.add_input_text(label=":", width=25, hint="HH")
-                        minute_input_end = dpg.add_input_text(label="", width=25, hint="MM")
+            with dpg.tab(label="Comandos"):
+                # Configurar el layout de la ventana de comandos
+                with dpg.group(horizontal=True):
+                    with dpg.group():
+                        # Widget para ingresar fechas (ARRIBA IZQUIERDA)
+                        with dpg.child_window(width=window_width // 2 - 10, height=window_height // 2 - 10):
+                            dpg.add_text("Fecha y hora Inicio:")
+                            global year_input, month_input, day_input, hour_input, minute_input
+                            with dpg.group(horizontal=True):
+                                year_input = dpg.add_input_text(label="-", width=35, hint="YYYY")
+                                month_input = dpg.add_input_text(label="-", width=25, hint="MM")
+                                day_input = dpg.add_input_text(label="-", width=25, hint="DD")
+                                hour_input = dpg.add_input_text(label=":", width=25, hint="HH")
+                                minute_input = dpg.add_input_text(label="", width=25, hint="MM")
 
-                    dpg.add_button(label="Enviar", callback=send_command)
+                            dpg.add_text("Fecha y hora Fin:")
+                            global year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end
+                            with dpg.group(horizontal=True):
+                                year_input_end = dpg.add_input_text(label="-", width=35, hint="YYYY")
+                                month_input_end = dpg.add_input_text(label="-", width=25, hint="MM")
+                                day_input_end = dpg.add_input_text(label="-", width=25, hint="DD")
+                                hour_input_end = dpg.add_input_text(label=":", width=25, hint="HH")
+                                minute_input_end = dpg.add_input_text(label="", width=25, hint="MM")
 
-                # Tabla para comandos ingresados (ABAJO IZQUIERDA)
-                with dpg.child_window(width=window_width // 2 - 10, height=window_height // 2 - 10):
-                    dpg.add_text("Comandos Ingresados")
-                    global table
-                    with dpg.table(header_row=True, resizable=True, policy=dpg.mvTable_SizingStretchProp) as table:
-                        dpg.add_table_column(label="Fecha y Hora")
-                        dpg.add_table_column(label="Fecha Inicio")
-                        dpg.add_table_column(label="Fecha Fin")
+                            dpg.add_button(label="Enviar", callback=send_command)
 
-            with dpg.group():
-                # Gráfico vacío (ARRIBA DERECHA)
-                with dpg.child_window(width=window_width // 2 - 10, height=window_height // 2 - 10):
-                    dpg.add_text("Gráfico de Broker")
-                    dpg.add_plot(label="Datos del Broker", height=-1)
+                        # Tabla para comandos ingresados (ABAJO IZQUIERDA)
+                        with dpg.child_window(width=window_width // 2 - 10, height=window_height // 2 - 10):
+                            dpg.add_text("Comandos Ingresados")
+                            global table
+                            with dpg.table(header_row=True, resizable=True, policy=dpg.mvTable_SizingStretchProp) as table:
+                                dpg.add_table_column(label="Fecha y Hora")
+                                dpg.add_table_column(label="Fecha Inicio")
+                                dpg.add_table_column(label="Fecha Fin")
 
-                # Mensaje de estado (ABAJO DERECHA)
-                with dpg.child_window(width=window_width // 2 - 10, height=window_height // 2 - 10):
-                    dpg.add_text("Estado del Broker")
-                    dpg.add_text("Desconectado", color=[255, 0, 0])
+                    with dpg.group():
+                        # Gráfico vacío (ARRIBA DERECHA)
+                        with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
+                            dpg.add_text("Gráfico de Broker")
+                            dpg.add_plot(label="Datos del Broker eje x", height=-1)
 
-    dpg.create_viewport(title='Tesis Precursores Sismicos', width=window_width + 30, height=window_height + 60)
+                        # Gráfico vacío (ARRIBA DERECHA)
+                        with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
+                            dpg.add_text("Gráfico de Broker")
+                            dpg.add_plot(label="Datos del Broker eje y", height=-1)
+
+                        # Gráfico vacío (ARRIBA DERECHA)
+                        with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
+                            dpg.add_text("Gráfico de Broker")
+                            dpg.add_plot(label="Datos del Broker eje z", height=-1)
+
+
+    dpg.create_viewport(title='Tesis Precursores Sismicos', width=window_width + 35, height=window_height + 100)
     dpg.setup_dearpygui()
     dpg.show_viewport()
-    dpg.set_viewport_pos([pos_x, pos_y])
+    dpg.set_viewport_pos([pos_x, pos_y - 50])
     dpg.start_dearpygui()
     dpg.destroy_context()
 
