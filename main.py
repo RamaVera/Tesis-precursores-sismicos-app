@@ -285,23 +285,20 @@ def connect_to_broker(sender, app_data, user_data):
         dpg.set_value(state_label, "Conectado")
         dpg.configure_item(state_label, color=[0, 255, 0])
 
+        mqtt_client.loop_start()
+
     except Exception as e:
         print(f"Se produjo un error al conectar: {e}")
         print(traceback.format_exc())
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    if flags.session_present:
-        print("Sesión presente")
-    if reason_code == 0:
-        print("Conexión exitosa")
-    if reason_code > 0:
-        print(f"Error al conectar: {reason_code}")
-    if reason_code == "Unsupported protocol version":
-        print("Versión de protocolo no soportada")
-    if reason_code == "Client identifier not valid":
-        print("Identificador de cliente no válido")
     print(f"Conexión con reason: {reason_code} y flags: {flags} y properties: {properties}")
+    if reason_code == "Success":
+        print("Conexión exitosa")
+        mqtt_client.subscribe(TOPIC_RESPONSE)
+    else:
+        print(f"Error al conectar: {reason_code}")
 
 
 def on_message(client, userdata, message):
@@ -309,12 +306,12 @@ def on_message(client, userdata, message):
 
 
 def on_subscribe(client, userdata, mid, reason_codes, properties):
-    for sub_result in reason_codes:
-        if sub_result == 1:
-            print("Suscripción exitosa")
-        # Any reason code >= 128 is a failure.
-        if sub_result >= 128:
-            print(f"Error al suscribirse: {sub_result}")
+    print(f"Suscripción con reason: {reason_codes} - mid {mid} y properties: {properties}")
+    if mid == 1:
+        print("Suscripción exitosa")
+    # Any reason code >= 128 is a failure.
+    if mid >= 128:
+        print(f"Error al suscribirse: {reason_codes}")
 
 
 if __name__ == "__main__":
