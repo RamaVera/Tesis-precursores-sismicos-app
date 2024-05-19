@@ -3,11 +3,34 @@ from screeninfo import get_monitors
 from datetime import datetime, timedelta
 import traceback
 
+# Definir constantes para los tags de los widgets
+TAG_YEAR_INPUT_START = "year_input_start"
+TAG_MONTH_INPUT_START = "month_input_start"
+TAG_DAY_INPUT_START = "day_input_start"
+TAG_HOUR_INPUT_START = "hour_input_start"
+TAG_MINUTE_INPUT_START = "minute_input_start"
+
+TAG_YEAR_INPUT_END = "year_input_end"
+TAG_MONTH_INPUT_END = "month_input_end"
+TAG_DAY_INPUT_END = "day_input_end"
+TAG_HOUR_INPUT_END = "hour_input_end"
+TAG_MINUTE_INPUT_END = "minute_input_end"
+
+TAG_DURATION_HOUR_INPUT = "duration_hour_input"
+TAG_DURATION_MINUTE_INPUT = "duration_minute_input"
+
+TAG_YEAR_INPUT_START_DUR = "year_input_start_dur"
+TAG_MONTH_INPUT_START_DUR = "month_input_start_dur"
+TAG_DAY_INPUT_START_DUR = "day_input_start_dur"
+TAG_HOUR_INPUT_START_DUR = "hour_input_start_dur"
+TAG_MINUTE_INPUT_START_DUR = "minute_input_start_dur"
+
 # Identificadores de los inputs
-year_input_start, month_input_start, day_input_start, hour_input_start, minute_input_start  = "", "", "", "", ""
+year_input_start, month_input_start, day_input_start, hour_input_start, minute_input_start = "", "", "", "", ""
 year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end = "", "", "", "", ""
-duration_hour_input, duration_minute_input  = "", ""
+duration_hour_input, duration_minute_input = "", ""
 state_label, table = "", ""
+
 
 def main():
     global year_input_start, month_input_start, day_input_start, hour_input_start, minute_input_start
@@ -49,45 +72,62 @@ def main():
                                 with dpg.tab(label="Inicio y Fin"):
                                     dpg.add_text("Fecha y hora Inicio:")
                                     with dpg.group(horizontal=True):
-                                        year_input_start = dpg.add_input_text(label="-", width=35, hint="YYYY", tag="year_input_start")
-                                        month_input_start = dpg.add_input_text(label="-", width=25, hint="MM", tag="month_input_start")
-                                        day_input_start = dpg.add_input_text(label="-", width=25, hint="DD", tag="day_input_start")
-                                        hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH", tag="hour_input_start")
-                                        minute_input_start = dpg.add_input_text(label="", width=25, hint="MM", tag="minute_input_start")
+                                        year_input_start = dpg.add_input_text(label="-", width=35, hint="YYYY",
+                                                                              tag=TAG_YEAR_INPUT_START)
+                                        month_input_start = dpg.add_input_text(label="-", width=25, hint="MM",
+                                                                               tag=TAG_MONTH_INPUT_START)
+                                        day_input_start = dpg.add_input_text(label="-", width=25, hint="DD",
+                                                                             tag=TAG_DAY_INPUT_START)
+                                        hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH",
+                                                                              tag=TAG_HOUR_INPUT_START)
+                                        minute_input_start = dpg.add_input_text(label="", width=25, hint="MM",
+                                                                                tag=TAG_MINUTE_INPUT_START)
 
                                     dpg.add_text("Fecha y hora Fin:")
                                     with dpg.group(horizontal=True):
-                                        year_input_end = dpg.add_input_text(label="-", width=35, hint="YYYY", tag="year_input_end")
-                                        month_input_end = dpg.add_input_text(label="-", width=25, hint="MM", tag="month_input_end")
-                                        day_input_end = dpg.add_input_text(label="-", width=25, hint="DD", tag="day_input_end")
-                                        hour_input_end = dpg.add_input_text(label=":", width=25, hint="HH", tag="hour_input_end")
-                                        minute_input_end = dpg.add_input_text(label="", width=25, hint="MM", tag="minute_input_end")
+                                        year_input_end = dpg.add_input_text(label="-", width=35, hint="YYYY",
+                                                                            tag=TAG_YEAR_INPUT_END)
+                                        month_input_end = dpg.add_input_text(label="-", width=25, hint="MM",
+                                                                             tag=TAG_MONTH_INPUT_END)
+                                        day_input_end = dpg.add_input_text(label="-", width=25, hint="DD",
+                                                                           tag=TAG_DAY_INPUT_END)
+                                        hour_input_end = dpg.add_input_text(label=":", width=25, hint="HH",
+                                                                            tag=TAG_HOUR_INPUT_END)
+                                        minute_input_end = dpg.add_input_text(label="", width=25, hint="MM",
+                                                                              tag=TAG_MINUTE_INPUT_END)
 
                                     dpg.add_button(label="Enviar", callback=send_command_by_init_end)
 
                                 with dpg.tab(label="Inicio y Duración"):
                                     dpg.add_text("Fecha y hora Inicio:")
                                     with dpg.group(horizontal=True):
-                                        year_input_start = dpg.add_input_text(label="-", width=35, hint="YYYY", tag="year_input_start_dur")
-                                        month_input_start = dpg.add_input_text(label="-", width=25, hint="MM", tag="month_input_start_dur")
-                                        day_input_start = dpg.add_input_text(label="-", width=25, hint="DD", tag="day_input_start_dur")
-                                        hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH", tag="hour_input_start_dur")
-                                        minute_input_start = dpg.add_input_text(label="", width=25, hint="MM", tag="minute_input_start_dur")
+                                        year_input_start = dpg.add_input_text(label="-", width=35, hint="YYYY",
+                                                                              tag=TAG_YEAR_INPUT_START_DUR)
+                                        month_input_start = dpg.add_input_text(label="-", width=25, hint="MM",
+                                                                               tag=TAG_MONTH_INPUT_START_DUR)
+                                        day_input_start = dpg.add_input_text(label="-", width=25, hint="DD",
+                                                                             tag=TAG_DAY_INPUT_START_DUR)
+                                        hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH",
+                                                                              tag=TAG_HOUR_INPUT_START_DUR)
+                                        minute_input_start = dpg.add_input_text(label="", width=25, hint="MM",
+                                                                                tag=TAG_MINUTE_INPUT_START_DUR)
 
                                     dpg.add_text("Duracion:")
                                     with dpg.group(horizontal=True):
-                                        duration_hour_input = dpg.add_input_text(label=":", width=25, hint="HH", tag="duration_hour_input")
-                                        duration_minute_input = dpg.add_input_text(label="", width=25, hint="MM", tag="duration_minute_input")
+                                        duration_hour_input = dpg.add_input_text(label=":", width=25, hint="HH",
+                                                                                 tag=TAG_DURATION_HOUR_INPUT)
+                                        duration_minute_input = dpg.add_input_text(label="", width=25, hint="MM",
+                                                                                   tag=TAG_DURATION_MINUTE_INPUT)
 
                                     dpg.add_button(label="Enviar", callback=send_command_by_init_duration)
 
                         # Tabla para comandos ingresados (ABAJO IZQUIERDA)
                         with dpg.child_window(width=window_width // 2 - 10, height=window_height // 2 - 10):
                             dpg.add_text("Comandos Ingresados")
-                            with dpg.table(header_row=True, resizable=True, policy=dpg.mvTable_SizingStretchProp) as table:
-                                dpg.add_table_column(label="Fecha y Hora")
-                                dpg.add_table_column(label="Fecha Inicio")
-                                dpg.add_table_column(label="Fecha Fin")
+                            with dpg.table(header_row=True, resizable=True, policy=dpg.mvTable_SizingFixedFit) as table:
+                                dpg.add_table_column(label="Fecha y Hora", width_fixed=False, init_width_or_weight=130)
+                                dpg.add_table_column(label="Fecha Inicio",width_fixed=True, init_width_or_weight=110)
+                                dpg.add_table_column(label="Fecha Fin", width_fixed=True, init_width_or_weight=110)
 
                     with dpg.group():
                         # Gráfico vacío (ARRIBA DERECHA)
@@ -105,7 +145,6 @@ def main():
                             dpg.add_text("Gráfico de Broker")
                             dpg.add_plot(label="Datos del Broker eje z", height=-1)
 
-
     dpg.create_viewport(title='Tesis Precursores Sismicos', width=window_width + 35, height=window_height + 100)
     dpg.setup_dearpygui()
     dpg.show_viewport()
@@ -113,14 +152,15 @@ def main():
     dpg.start_dearpygui()
     dpg.destroy_context()
 
+
 # Función para ejecutar el comando y registrar en la tabla
 def send_command_by_init_end(sender, app_data, user_data):
     try:
-        year = dpg.get_value("year_input_start")
-        month = dpg.get_value("month_input_start")
-        day = dpg.get_value("day_input_start")
-        hour = dpg.get_value("hour_input_start")
-        minute = dpg.get_value("minute_input_start")
+        year = dpg.get_value(TAG_YEAR_INPUT_START)
+        month = dpg.get_value(TAG_MONTH_INPUT_START)
+        day = dpg.get_value(TAG_DAY_INPUT_START)
+        hour = dpg.get_value(TAG_HOUR_INPUT_START)
+        minute = dpg.get_value(TAG_MINUTE_INPUT_START)
         print(f"Valores obtenidos: year={year}, month={month}, day={day}, hour={hour}, minute={minute}")
 
         if not year or not month or not day or not hour or not minute:
@@ -133,11 +173,11 @@ def send_command_by_init_end(sender, app_data, user_data):
         minute = int(minute)
         start_date = f"{year}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}"
 
-        year_end = dpg.get_value("year_input_end")
-        month_end = dpg.get_value("month_input_end")
-        day_end = dpg.get_value("day_input_end")
-        hour_end = dpg.get_value("hour_input_end")
-        minute_end = dpg.get_value("minute_input_end")
+        year_end = dpg.get_value(TAG_YEAR_INPUT_END)
+        month_end = dpg.get_value(TAG_MONTH_INPUT_END)
+        day_end = dpg.get_value(TAG_DAY_INPUT_END)
+        hour_end = dpg.get_value(TAG_HOUR_INPUT_END)
+        minute_end = dpg.get_value(TAG_MINUTE_INPUT_END)
 
         if not year_end or not month_end or not day_end or not hour_end or not minute_end:
             raise ValueError("Todos los campos de fecha y hora deben estar completos para la fecha de fin.")
@@ -165,13 +205,14 @@ def send_command_by_init_end(sender, app_data, user_data):
         print(f"Se produjo un error: {e}")
         print(traceback.format_exc())
 
+
 def send_command_by_init_duration(sender, app_data, user_data):
     try:
-        year = dpg.get_value("year_input_start_dur")
-        month = dpg.get_value("month_input_start_dur")
-        day = dpg.get_value("day_input_start_dur")
-        hour = dpg.get_value("hour_input_start_dur")
-        minute = dpg.get_value("minute_input_start_dur")
+        year = dpg.get_value(TAG_YEAR_INPUT_START_DUR)
+        month = dpg.get_value(TAG_MONTH_INPUT_START_DUR)
+        day = dpg.get_value(TAG_DAY_INPUT_START_DUR)
+        hour = dpg.get_value(TAG_HOUR_INPUT_START_DUR)
+        minute = dpg.get_value(TAG_MINUTE_INPUT_START_DUR)
         print(f"Valores obtenidos: year={year}, month={month}, day={day}, hour={hour}, minute={minute}")
 
         if not year or not month or not day or not hour or not minute:
@@ -184,8 +225,8 @@ def send_command_by_init_duration(sender, app_data, user_data):
         minute = int(minute)
         start_date = f"{year}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}"
 
-        duration_hours = dpg.get_value("duration_hour_input")
-        duration_minutes = dpg.get_value("duration_minute_input")
+        duration_hours = dpg.get_value(TAG_DURATION_HOUR_INPUT)
+        duration_minutes = dpg.get_value(TAG_DURATION_MINUTE_INPUT)
 
         if not duration_hours or not duration_minutes:
             raise ValueError("Todos los campos de duración deben estar completos.")
@@ -217,6 +258,7 @@ def send_command_by_init_duration(sender, app_data, user_data):
         print(f"Se produjo un error: {e}")
         print(traceback.format_exc())
 
+
 def connect_to_broker(sender, app_data, user_data):
     try:
         # Aquí iría el código para conectar al broker
@@ -225,6 +267,7 @@ def connect_to_broker(sender, app_data, user_data):
     except Exception as e:
         print(f"Se produjo un error al conectar: {e}")
         print(traceback.format_exc())
+
 
 if __name__ == "__main__":
     main()
