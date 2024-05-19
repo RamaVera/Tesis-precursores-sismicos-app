@@ -3,8 +3,9 @@ from screeninfo import get_monitors
 from datetime import datetime
 
 # Variables globales para la entrada de fechas
-year_input, month_input, day_input, hour_input, minute_input = None, None, None, None, None
-year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end = None, None, None, None, None
+year_input, month_input, day_input, hour_input, minute_input = "", "", "", "", ""
+year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end = "", "", "", "", ""
+state_label = ""
 
 
 # Función para ejecutar el comando y registrar en la tabla
@@ -36,7 +37,8 @@ def send_command(sender, app_data, user_data):
 
 def connect_to_broker(sender, app_data, user_data):
     # Aquí iría el código para conectar al broker
-    dpg.configure_item(state_label, label="Conectado", color=[0, 255, 0])
+    dpg.set_value(state_label, "Conectado")
+    dpg.configure_item(state_label, color=[0, 255, 0])
 
 
 def main():
