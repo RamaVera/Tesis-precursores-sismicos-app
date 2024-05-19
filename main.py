@@ -1,3 +1,4 @@
+import paho.mqtt.client as mqtt
 import dearpygui.dearpygui as dpg
 from screeninfo import get_monitors
 from datetime import datetime, timedelta
@@ -31,6 +32,16 @@ year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end
 duration_hour_input, duration_minute_input = "", ""
 state_label, table = "", ""
 
+# Configuración del broker MQTT
+MQTT_BROKER = "broker.emqx.io"
+MQTT_PORT = 1883
+
+# Temas MQTT
+TOPIC_COMMAND = "tesis/commands"
+TOPIC_RESPONSE = "tesis/data"
+
+# Cliente MQTT
+mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id="myPy", protocol=mqtt.MQTTv5)
 
 def main():
     global year_input_start, month_input_start, day_input_start, hour_input_start, minute_input_start
@@ -181,6 +192,8 @@ def send_command_by_init_end(sender, app_data, user_data):
             dpg.add_text(end_date)
 
         print(f"Comando ejecutado: Fecha Inicio: {start_date}, Fecha Fin: {end_date}")
+        command_to_send = f"R {start_date}-{end_date}"
+        publish_command(TOPIC_COMMAND, command_to_send)
     except ValueError as ve:
         print(f"Error: {ve}")
         print(traceback.format_exc())
@@ -234,6 +247,8 @@ def send_command_by_init_duration(sender, app_data, user_data):
             dpg.add_text(end_date)
 
         print(f"Comando ejecutado: Fecha Inicio: {start_date}, Fecha Fin: {end_date}")
+        command_to_send = f"R {start_date}-{end_date}"
+        publish_command(TOPIC_COMMAND, command_to_send)
     except ValueError as ve:
         print(f"Error: {ve}")
         print(traceback.format_exc())
@@ -242,14 +257,64 @@ def send_command_by_init_duration(sender, app_data, user_data):
         print(traceback.format_exc())
 
 
+def publish_command(topic, message):
+    from paho.mqtt.properties import Properties
+    from paho.mqtt.packettypes import PacketTypes
+    properties = Properties(PacketTypes.PUBLISH)
+    properties.MessageExpiryInterval = 30  # in seconds
+
+    mqtt_client.publish(topic, message, 0, properties=properties);
+
 def connect_to_broker(sender, app_data, user_data):
     try:
-        # Aquí iría el código para conectar al broker
+        mqtt_client.on_message = on_message
+        mqtt_client.on_connect = on_connect
+        mqtt_client.on_subscribe = on_subscribe
+
+        from paho.mqtt.properties import Properties
+        from paho.mqtt.packettypes import PacketTypes
+        properties = Properties(PacketTypes.CONNECT)
+        properties.SessionExpiryInterval = 30 * 60  # in seconds
+        mqtt_client.connect(MQTT_BROKER,
+                            port=MQTT_PORT,
+                            clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
+                            properties=properties,
+                            keepalive=60)
+
+        # Configurar la interfaz de usuario para indicar la conexión exitosa
         dpg.set_value(state_label, "Conectado")
         dpg.configure_item(state_label, color=[0, 255, 0])
+
     except Exception as e:
         print(f"Se produjo un error al conectar: {e}")
         print(traceback.format_exc())
+
+
+def on_connect(client, userdata, flags, reason_code, properties):
+    if flags.session_present:
+        print("Sesión presente")
+    if reason_code == 0:
+        print("Conexión exitosa")
+    if reason_code > 0:
+        print(f"Error al conectar: {reason_code}")
+    if reason_code == "Unsupported protocol version":
+        print("Versión de protocolo no soportada")
+    if reason_code == "Client identifier not valid":
+        print("Identificador de cliente no válido")
+    print(f"Conexión con reason: {reason_code} y flags: {flags} y properties: {properties}")
+
+
+def on_message(client, userdata, message):
+    print("Mensaje recibido: " + str(message.payload.decode("utf-8")))
+
+
+def on_subscribe(client, userdata, mid, reason_codes, properties):
+    for sub_result in reason_codes:
+        if sub_result == 1:
+            print("Suscripción exitosa")
+        # Any reason code >= 128 is a failure.
+        if sub_result >= 128:
+            print(f"Error al suscribirse: {sub_result}")
 
 
 if __name__ == "__main__":
