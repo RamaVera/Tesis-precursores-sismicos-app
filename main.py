@@ -72,52 +72,35 @@ def main():
                                 with dpg.tab(label="Inicio y Fin"):
                                     dpg.add_text("Fecha y hora Inicio:")
                                     with dpg.group(horizontal=True):
-                                        year_input_start = dpg.add_input_text(label="-", width=35, hint="YYYY",
-                                                                              tag=TAG_YEAR_INPUT_START)
-                                        month_input_start = dpg.add_input_text(label="-", width=25, hint="MM",
-                                                                               tag=TAG_MONTH_INPUT_START)
-                                        day_input_start = dpg.add_input_text(label="-", width=25, hint="DD",
-                                                                             tag=TAG_DAY_INPUT_START)
-                                        hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH",
-                                                                              tag=TAG_HOUR_INPUT_START)
-                                        minute_input_start = dpg.add_input_text(label="", width=25, hint="MM",
-                                                                                tag=TAG_MINUTE_INPUT_START)
+                                        year_input_start = dpg.add_input_text(label="-", width=35, hint="YYYY", tag=TAG_YEAR_INPUT_START)
+                                        month_input_start = dpg.add_input_text(label="-", width=25, hint="MM", tag=TAG_MONTH_INPUT_START)
+                                        day_input_start = dpg.add_input_text(label="-", width=25, hint="DD", tag=TAG_DAY_INPUT_START)
+                                        hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_HOUR_INPUT_START)
+                                        minute_input_start = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_MINUTE_INPUT_START)
 
                                     dpg.add_text("Fecha y hora Fin:")
                                     with dpg.group(horizontal=True):
-                                        year_input_end = dpg.add_input_text(label="-", width=35, hint="YYYY",
-                                                                            tag=TAG_YEAR_INPUT_END)
-                                        month_input_end = dpg.add_input_text(label="-", width=25, hint="MM",
-                                                                             tag=TAG_MONTH_INPUT_END)
-                                        day_input_end = dpg.add_input_text(label="-", width=25, hint="DD",
-                                                                           tag=TAG_DAY_INPUT_END)
-                                        hour_input_end = dpg.add_input_text(label=":", width=25, hint="HH",
-                                                                            tag=TAG_HOUR_INPUT_END)
-                                        minute_input_end = dpg.add_input_text(label="", width=25, hint="MM",
-                                                                              tag=TAG_MINUTE_INPUT_END)
+                                        year_input_end = dpg.add_input_text(label="-", width=35, hint="YYYY", tag=TAG_YEAR_INPUT_END)
+                                        month_input_end = dpg.add_input_text(label="-", width=25, hint="MM", tag=TAG_MONTH_INPUT_END)
+                                        day_input_end = dpg.add_input_text(label="-", width=25, hint="DD", tag=TAG_DAY_INPUT_END)
+                                        hour_input_end = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_HOUR_INPUT_END)
+                                        minute_input_end = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_MINUTE_INPUT_END)
 
                                     dpg.add_button(label="Enviar", callback=send_command_by_init_end)
 
                                 with dpg.tab(label="Inicio y Duración"):
                                     dpg.add_text("Fecha y hora Inicio:")
                                     with dpg.group(horizontal=True):
-                                        year_input_start = dpg.add_input_text(label="-", width=35, hint="YYYY",
-                                                                              tag=TAG_YEAR_INPUT_START_DUR)
-                                        month_input_start = dpg.add_input_text(label="-", width=25, hint="MM",
-                                                                               tag=TAG_MONTH_INPUT_START_DUR)
-                                        day_input_start = dpg.add_input_text(label="-", width=25, hint="DD",
-                                                                             tag=TAG_DAY_INPUT_START_DUR)
-                                        hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH",
-                                                                              tag=TAG_HOUR_INPUT_START_DUR)
-                                        minute_input_start = dpg.add_input_text(label="", width=25, hint="MM",
-                                                                                tag=TAG_MINUTE_INPUT_START_DUR)
+                                        year_input_start = dpg.add_input_text(label="-", width=35, hint="YYYY", tag=TAG_YEAR_INPUT_START_DUR)
+                                        month_input_start = dpg.add_input_text(label="-", width=25, hint="MM", tag=TAG_MONTH_INPUT_START_DUR)
+                                        day_input_start = dpg.add_input_text(label="-", width=25, hint="DD", tag=TAG_DAY_INPUT_START_DUR)
+                                        hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_HOUR_INPUT_START_DUR)
+                                        minute_input_start = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_MINUTE_INPUT_START_DUR)
 
                                     dpg.add_text("Duracion:")
                                     with dpg.group(horizontal=True):
-                                        duration_hour_input = dpg.add_input_text(label=":", width=25, hint="HH",
-                                                                                 tag=TAG_DURATION_HOUR_INPUT)
-                                        duration_minute_input = dpg.add_input_text(label="", width=25, hint="MM",
-                                                                                   tag=TAG_DURATION_MINUTE_INPUT)
+                                        duration_hour_input = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_DURATION_HOUR_INPUT)
+                                        duration_minute_input = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_DURATION_MINUTE_INPUT)
 
                                     dpg.add_button(label="Enviar", callback=send_command_by_init_duration)
 
