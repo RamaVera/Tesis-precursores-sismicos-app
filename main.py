@@ -150,40 +150,12 @@ def main():
 # Función para ejecutar el comando y registrar en la tabla
 def send_command_by_init_end(sender, app_data, user_data):
     try:
-        year = dpg.get_value(TAG_YEAR_INPUT_START)
-        month = dpg.get_value(TAG_MONTH_INPUT_START)
-        day = dpg.get_value(TAG_DAY_INPUT_START)
-        hour = dpg.get_value(TAG_HOUR_INPUT_START)
-        minute = dpg.get_value(TAG_MINUTE_INPUT_START)
-        print(f"Valores obtenidos: year={year}, month={month}, day={day}, hour={hour}, minute={minute}")
-
-        if not year or not month or not day or not hour or not minute:
-            raise ValueError("Todos los campos de fecha y hora deben estar completos para la fecha de inicio.")
-
-        year = int(year)
-        month = int(month)
-        day = int(day)
-        hour = int(hour)
-        minute = int(minute)
-        start_date = f"{year}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}"
-
-        year_end = dpg.get_value(TAG_YEAR_INPUT_END)
-        month_end = dpg.get_value(TAG_MONTH_INPUT_END)
-        day_end = dpg.get_value(TAG_DAY_INPUT_END)
-        hour_end = dpg.get_value(TAG_HOUR_INPUT_END)
-        minute_end = dpg.get_value(TAG_MINUTE_INPUT_END)
-
-        if not year_end or not month_end or not day_end or not hour_end or not minute_end:
-            raise ValueError("Todos los campos de fecha y hora deben estar completos para la fecha de fin.")
-
-        year_end = int(year_end)
-        month_end = int(month_end)
-        day_end = int(day_end)
-        hour_end = int(hour_end)
-        minute_end = int(minute_end)
-        end_date = f"{year_end}-{month_end:02d}-{day_end:02d} {hour_end:02d}:{minute_end:02d}"
+        start_datetime = user_input_to_datetime(TAG_YEAR_INPUT_START, TAG_MONTH_INPUT_START, TAG_DAY_INPUT_START, TAG_HOUR_INPUT_START, TAG_MINUTE_INPUT_START)
+        end_datetime = user_input_to_datetime(TAG_YEAR_INPUT_END, TAG_MONTH_INPUT_END, TAG_DAY_INPUT_END, TAG_HOUR_INPUT_END, TAG_MINUTE_INPUT_END)
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        start_date = start_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        end_date = end_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
         # Agregar el comando a la tabla
         with dpg.table_row(parent=table):
@@ -192,8 +164,7 @@ def send_command_by_init_end(sender, app_data, user_data):
             dpg.add_text(end_date)
 
         print(f"Comando ejecutado: Fecha Inicio: {start_date}, Fecha Fin: {end_date}")
-        command_to_send = f"R {start_date}-{end_date}"
-        publish_command(TOPIC_COMMAND, command_to_send)
+        publish_command(TOPIC_COMMAND, ToCommand(end_datetime, start_datetime))
     except ValueError as ve:
         print(f"Error: {ve}")
         print(traceback.format_exc())
@@ -204,22 +175,7 @@ def send_command_by_init_end(sender, app_data, user_data):
 
 def send_command_by_init_duration(sender, app_data, user_data):
     try:
-        year = dpg.get_value(TAG_YEAR_INPUT_START_DUR)
-        month = dpg.get_value(TAG_MONTH_INPUT_START_DUR)
-        day = dpg.get_value(TAG_DAY_INPUT_START_DUR)
-        hour = dpg.get_value(TAG_HOUR_INPUT_START_DUR)
-        minute = dpg.get_value(TAG_MINUTE_INPUT_START_DUR)
-        print(f"Valores obtenidos: year={year}, month={month}, day={day}, hour={hour}, minute={minute}")
-
-        if not year or not month or not day or not hour or not minute:
-            raise ValueError("Todos los campos de fecha y hora deben estar completos para la fecha de inicio.")
-
-        year = int(year)
-        month = int(month)
-        day = int(day)
-        hour = int(hour)
-        minute = int(minute)
-        start_date = f"{year}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}"
+        start_datetime = user_input_to_datetime(TAG_YEAR_INPUT_START_DUR, TAG_MONTH_INPUT_START_DUR, TAG_DAY_INPUT_START_DUR, TAG_HOUR_INPUT_START_DUR, TAG_MINUTE_INPUT_START_DUR)
 
         duration_hours = dpg.get_value(TAG_DURATION_HOUR_INPUT)
         duration_minutes = dpg.get_value(TAG_DURATION_MINUTE_INPUT)
@@ -230,14 +186,11 @@ def send_command_by_init_duration(sender, app_data, user_data):
         duration_hours = int(duration_hours)
         duration_minutes = int(duration_minutes)
 
-        # Crear un objeto datetime para la fecha de inicio
-        start_datetime = datetime(year, month, day, hour, minute)
-
         # Sumar la duración al datetime de inicio
         end_datetime = start_datetime + timedelta(hours=duration_hours, minutes=duration_minutes)
 
+        start_date = start_datetime.strftime("%Y-%m-%d %H:%M:%S")
         end_date = end_datetime.strftime("%Y-%m-%d %H:%M:%S")
-
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Agregar el comando a la tabla
@@ -246,15 +199,35 @@ def send_command_by_init_duration(sender, app_data, user_data):
             dpg.add_text(start_date)
             dpg.add_text(end_date)
 
-        print(f"Comando ejecutado: Fecha Inicio: {start_date}, Fecha Fin: {end_date}")
-        command_to_send = f"R {start_date}-{end_date}"
-        publish_command(TOPIC_COMMAND, command_to_send)
+        print(f"Comando ejecutado: Fecha Inicio: {start_datetime}, Fecha Fin: {end_date}")
+        publish_command(TOPIC_COMMAND, ToCommand(end_datetime, start_datetime))
     except ValueError as ve:
         print(f"Error: {ve}")
         print(traceback.format_exc())
     except Exception as e:
         print(f"Se produjo un error: {e}")
         print(traceback.format_exc())
+
+def user_input_to_datetime(year_input, month_input, day_input, hour_input, minute_input):
+    year = dpg.get_value(year_input)
+    month = dpg.get_value(month_input)
+    day = dpg.get_value(day_input)
+    hour = dpg.get_value(hour_input)
+    minute = dpg.get_value(minute_input)
+    print(f"Valores obtenidos: year={year}, month={month}, day={day}, hour={hour}, minute={minute}")
+    if not year or not month or not day or not hour or not minute:
+        raise ValueError("Todos los campos de fecha y hora deben estar completos para la fecha de inicio.")
+    year = int(year)
+    month = int(month)
+    day = int(day)
+    hour = int(hour)
+    minute = int(minute)
+    start_datetime = datetime(year, month, day, hour, minute)
+    return start_datetime
+
+def ToCommand(end_datetime, start_datetime):
+    command_to_send = f"R {start_datetime.year}-{start_datetime.month}-{start_datetime.day}-{start_datetime.hour}-{start_datetime.minute}-{end_datetime.year}-{end_datetime.month}-{end_datetime.day}-{end_datetime.hour}-{end_datetime.minute}"
+    return command_to_send
 
 
 def publish_command(topic, message):
@@ -293,7 +266,7 @@ def connect_to_broker(sender, app_data, user_data):
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    print(f"Conexión con reason: {reason_code} y flags: {flags} y properties: {properties}")
+    print(f"Conexión con reason: {reason_code} - flags: {flags} y properties: {properties}")
     if reason_code == "Success":
         print("Conexión exitosa")
         mqtt_client.subscribe(TOPIC_RESPONSE)
