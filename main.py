@@ -30,7 +30,8 @@ TAG_MINUTE_INPUT_START_DUR = "minute_input_start_dur"
 year_input_start, month_input_start, day_input_start, hour_input_start, minute_input_start = "", "", "", "", ""
 year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end = "", "", "", "", ""
 duration_hour_input, duration_minute_input = "", ""
-state_label, table = "", ""
+state_label, table, row_theme_error, row_theme_success = "", "", "", ""
+last_row_id = 0
 
 # Configuración del broker MQTT
 MQTT_BROKER = "broker.emqx.io"
@@ -47,7 +48,7 @@ def main():
     global year_input_start, month_input_start, day_input_start, hour_input_start, minute_input_start
     global year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end
     global duration_hour_input, duration_minute_input
-    global state_label, table
+    global state_label, table, row_theme_error, row_theme_success
 
     # Obtener el tamaño de la pantalla
     monitor = get_monitors()[0]
@@ -118,6 +119,20 @@ def main():
                         # Tabla para comandos ingresados (ABAJO IZQUIERDA)
                         with dpg.child_window(width=window_width // 2 - 10, height=window_height // 2 - 10):
                             dpg.add_text("Comandos Ingresados")
+
+                            # Crear temas para las filas
+                            with dpg.theme() as row_theme_error:
+                                with dpg.theme_component(dpg.mvAll):
+                                    dpg.add_theme_color(dpg.mvThemeCol_TableRowBg, (255, 0, 0, 255),category=dpg.mvThemeCat_Core)  # Rojo
+
+                            with dpg.theme() as item_theme:
+                                with dpg.theme_component(dpg.mvAll):
+                                    dpg.add_theme_color(dpg.mvThemeCol_FrameBg, (200, 200, 100), category=dpg.mvThemeCat_Core)
+
+                            with dpg.theme() as row_theme_success:
+                                with dpg.theme_component(dpg.mvAll):
+                                    dpg.add_theme_color(dpg.mvThemeCol_TableRowBg, (0, 255, 0, 255))  # Verde
+
                             with dpg.table(header_row=True, resizable=True, policy=dpg.mvTable_SizingFixedFit) as table:
                                 dpg.add_table_column(label="Fecha y Hora", width_fixed=False, init_width_or_weight=130)
                                 dpg.add_table_column(label="Fecha Inicio",width_fixed=True, init_width_or_weight=110)
@@ -146,9 +161,8 @@ def main():
     dpg.start_dearpygui()
     dpg.destroy_context()
 
-
-# Función para ejecutar el comando y registrar en la tabla
 def send_command_by_init_end(sender, app_data, user_data):
+    global last_row_id
     try:
         start_datetime = user_input_to_datetime(TAG_YEAR_INPUT_START, TAG_MONTH_INPUT_START, TAG_DAY_INPUT_START, TAG_HOUR_INPUT_START, TAG_MINUTE_INPUT_START)
         end_datetime = user_input_to_datetime(TAG_YEAR_INPUT_END, TAG_MONTH_INPUT_END, TAG_DAY_INPUT_END, TAG_HOUR_INPUT_END, TAG_MINUTE_INPUT_END)
@@ -158,13 +172,14 @@ def send_command_by_init_end(sender, app_data, user_data):
         end_date = end_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
         # Agregar el comando a la tabla
-        with dpg.table_row(parent=table):
+        with dpg.table_row(parent=table) as row_id:
             dpg.add_text(now)
             dpg.add_text(start_date)
             dpg.add_text(end_date)
 
         print(f"Comando ejecutado: Fecha Inicio: {start_date}, Fecha Fin: {end_date}")
-        publish_command(TOPIC_COMMAND, ToCommand(end_datetime, start_datetime))
+        publish_command(TOPIC_COMMAND, to_command(end_datetime, start_datetime))
+        last_row_id = row_id
     except ValueError as ve:
         print(f"Error: {ve}")
         print(traceback.format_exc())
@@ -174,6 +189,7 @@ def send_command_by_init_end(sender, app_data, user_data):
 
 
 def send_command_by_init_duration(sender, app_data, user_data):
+    global last_row_id
     try:
         start_datetime = user_input_to_datetime(TAG_YEAR_INPUT_START_DUR, TAG_MONTH_INPUT_START_DUR, TAG_DAY_INPUT_START_DUR, TAG_HOUR_INPUT_START_DUR, TAG_MINUTE_INPUT_START_DUR)
 
@@ -194,13 +210,14 @@ def send_command_by_init_duration(sender, app_data, user_data):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Agregar el comando a la tabla
-        with dpg.table_row(parent=table):
+        with dpg.table_row(parent=table) as row_id:
             dpg.add_text(now)
             dpg.add_text(start_date)
             dpg.add_text(end_date)
 
         print(f"Comando ejecutado: Fecha Inicio: {start_datetime}, Fecha Fin: {end_date}")
-        publish_command(TOPIC_COMMAND, ToCommand(end_datetime, start_datetime))
+        publish_command(TOPIC_COMMAND, to_command(end_datetime, start_datetime))
+        last_row_id = row_id
     except ValueError as ve:
         print(f"Error: {ve}")
         print(traceback.format_exc())
@@ -225,10 +242,11 @@ def user_input_to_datetime(year_input, month_input, day_input, hour_input, minut
     start_datetime = datetime(year, month, day, hour, minute)
     return start_datetime
 
-def ToCommand(end_datetime, start_datetime):
+def to_command(end_datetime, start_datetime):
     command_to_send = f"R {start_datetime.year}-{start_datetime.month}-{start_datetime.day}-{start_datetime.hour}-{start_datetime.minute}-{end_datetime.year}-{end_datetime.month}-{end_datetime.day}-{end_datetime.hour}-{end_datetime.minute}"
     return command_to_send
 
+# Broker MQTT --------------------------------------------------------------
 
 def publish_command(topic, message):
     from paho.mqtt.properties import Properties
@@ -237,6 +255,21 @@ def publish_command(topic, message):
     properties.MessageExpiryInterval = 30  # in seconds
 
     mqtt_client.publish(topic, message, 0, properties=properties);
+
+def process_message(topic, message):
+    global last_row_id, row_theme_error, row_theme_success
+
+    try:
+        print(f"Mensaje recibido: {message}")
+        print(f"Row ID to change: {last_row_id}")
+        if message == "error reading":
+            dpg.configure_item(last_row_id, theme=row_theme_error)
+        else:
+            dpg.configure_item(last_row_id, theme=row_theme_success)
+
+    except Exception as e:
+        print(f"Se produjo un error al recibir parametro: {e}")
+        print(traceback.format_exc())
 
 def connect_to_broker(sender, app_data, user_data):
     try:
@@ -264,6 +297,7 @@ def connect_to_broker(sender, app_data, user_data):
         print(f"Se produjo un error al conectar: {e}")
         print(traceback.format_exc())
 
+# Broker Callbacks ---------------------------------------------------------
 
 def on_connect(client, userdata, flags, reason_code, properties):
     print(f"Conexión con reason: {reason_code} - flags: {flags} y properties: {properties}")
@@ -273,10 +307,9 @@ def on_connect(client, userdata, flags, reason_code, properties):
     else:
         print(f"Error al conectar: {reason_code}")
 
-
 def on_message(client, userdata, message):
     print("Mensaje recibido: " + str(message.payload.decode("utf-8")))
-
+    process_message(message.topic, message.payload.decode("utf-8"))
 
 def on_subscribe(client, userdata, mid, reason_codes, properties):
     print(f"Suscripción con reason: {reason_codes} - mid {mid} y properties: {properties}")
