@@ -3,6 +3,8 @@ import dearpygui.dearpygui as dpg
 from screeninfo import get_monitors
 from datetime import datetime, timedelta
 import traceback
+import struct
+import re
 
 # Definir constantes para los tags de los widgets
 TAG_YEAR_INPUT_START = "year_input_start"
@@ -275,7 +277,32 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 
 def on_message(client, userdata, message):
-    print("Mensaje recibido: " + str(message.payload.decode("utf-8")))
+    msg = message.payload.decode("utf-8")
+    decode_message(msg)
+
+def decode_message(msg):
+    if "error" in msg:
+        print("Se detectó un error de lectura.")
+    else:
+        match = re.search(r'(\d{2}):(\d{2})', msg)
+        if match:
+            hour, minute = map(int, match.groups())
+            print(f"Hora: {hour}, Minuto: {minute}")
+        else:
+            sensor_data = msg.split("\n")[0]
+
+            # Convertimos la cadena hexadecimal a bytes
+            data_bytes = bytes.fromhex(sensor_data.strip())
+
+            # Desempaquetamos los datos
+            mpu_accelX, mpu_accelY, mpu_accelZ, adc_adcX, adc_adcY, adc_adcZ = struct.unpack('HHHHHH', data_bytes)
+
+            # Ahora puedes usar estos valores para recrear tus estructuras
+            mpu_data = {'accelX': mpu_accelX, 'accelY': mpu_accelY, 'accelZ': mpu_accelZ}
+            adc_data = {'adcX': adc_adcX, 'adcY': adc_adcY, 'adcZ': adc_adcZ}
+            sd_data = {'mpuData': mpu_data, 'adcData': adc_data}
+
+            print(f"Datos del sensor: {sd_data}")
 
 
 def on_subscribe(client, userdata, mid, reason_codes, properties):
