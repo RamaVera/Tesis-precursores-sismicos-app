@@ -10,6 +10,7 @@ import time
 import shutil
 from paho.mqtt import client as mqtt_client
 import os
+import pdb
 
 # Definir constantes para los tags de los widgets
 TAG_YEAR_INPUT_START = "year_input_start"
@@ -144,16 +145,16 @@ def main():
                         with dpg.group():
                             with dpg.group(horizontal=True):
                                 dpg.add_text("MQTT Broker")
-                                esp32_broker = dpg.add_input_text(label="", width=200, hint=default_mqtt_broker, tag=TAG_ESP_SD_MQTT_BROKER)
+                                esp32_broker = dpg.add_input_text(label="", width=400, hint=default_mqtt_broker, tag=TAG_ESP_SD_MQTT_BROKER)
                             with dpg.group(horizontal=True):
                                 dpg.add_text("MQTT User")
-                                esp32_usr = dpg.add_input_text(label="", width=200, hint=default_mqtt_user, tag=TAG_ESP_SD_MQTT_USER)
+                                esp32_usr = dpg.add_input_text(label="", width=300, hint=default_mqtt_user, tag=TAG_ESP_SD_MQTT_USER)
                             with dpg.group(horizontal=True):
                                 dpg.add_text("MQTT Password")
-                                esp32_pass = dpg.add_input_text(label="", width=200, hint=default_mqtt_password, tag=TAG_ESP_SD_MQTT_PASSWORD)
+                                esp32_pass = dpg.add_input_text(label="", width=300, hint=default_mqtt_password, tag=TAG_ESP_SD_MQTT_PASSWORD)
                             with dpg.group(horizontal=True):
                                 dpg.add_text("MQTT Port")
-                                esp32_port = dpg.add_input_text(label="", width=200, hint=str(default_mqtt_port), tag=TAG_ESP_SD_MQTT_PORT)
+                                esp32_port = dpg.add_input_text(label="", width=75, hint=str(default_mqtt_port), tag=TAG_ESP_SD_MQTT_PORT)
                             dpg.add_text("Usar misma configuracion del broker")
                             with dpg.group(horizontal=True):
                                 dpg.add_text("(requiere conexion previa)")
@@ -202,6 +203,12 @@ def main():
                                         day_input_start = dpg.add_input_text(label="-", width=25, hint="DD", tag=TAG_DAY_INPUT_START)
                                         hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_HOUR_INPUT_START)
                                         minute_input_start = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_MINUTE_INPUT_START)
+                                        user_data = [TAG_YEAR_INPUT_START]
+                                        user_data.append(TAG_MONTH_INPUT_START)
+                                        user_data.append(TAG_DAY_INPUT_START)
+                                        user_data.append(TAG_HOUR_INPUT_START)
+                                        user_data.append(TAG_MINUTE_INPUT_START)
+                                        dpg.add_button(label="Hoy", callback=today_date, user_data=user_data)
 
                                     dpg.add_text("Fecha y hora Fin:")
                                     with dpg.group(horizontal=True):
@@ -210,6 +217,12 @@ def main():
                                         day_input_end = dpg.add_input_text(label="-", width=25, hint="DD", tag=TAG_DAY_INPUT_END)
                                         hour_input_end = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_HOUR_INPUT_END)
                                         minute_input_end = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_MINUTE_INPUT_END)
+                                        user_data = [TAG_YEAR_INPUT_END]
+                                        user_data.append(TAG_MONTH_INPUT_END)
+                                        user_data.append(TAG_DAY_INPUT_END)
+                                        user_data.append(TAG_HOUR_INPUT_END)
+                                        user_data.append(TAG_MINUTE_INPUT_END)
+                                        dpg.add_button(label="Hoy", callback=today_date, user_data=user_data)
 
                                     dpg.add_button(label="Enviar", callback=send_command_by_init_end)
 
@@ -221,11 +234,20 @@ def main():
                                         day_input_start = dpg.add_input_text(label="-", width=25, hint="DD", tag=TAG_DAY_INPUT_START_DUR)
                                         hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_HOUR_INPUT_START_DUR)
                                         minute_input_start = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_MINUTE_INPUT_START_DUR)
+                                        user_data = [TAG_YEAR_INPUT_START_DUR]
+                                        user_data.append(TAG_MONTH_INPUT_START_DUR)
+                                        user_data.append(TAG_DAY_INPUT_START_DUR)
+                                        user_data.append(TAG_HOUR_INPUT_START_DUR)
+                                        user_data.append(TAG_MINUTE_INPUT_START_DUR)
+                                        dpg.add_button(label="Hoy", callback=today_date, user_data=user_data)
 
                                     dpg.add_text("Duracion:")
                                     with dpg.group(horizontal=True):
                                         duration_hour_input = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_DURATION_HOUR_INPUT)
                                         duration_minute_input = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_DURATION_MINUTE_INPUT)
+                                        user_data = [TAG_DURATION_HOUR_INPUT]
+                                        user_data.append(TAG_DURATION_MINUTE_INPUT)
+                                        dpg.add_button(label="+", callback=counter_minutes, user_data=user_data)
 
                                     dpg.add_button(label="Enviar", callback=send_command_by_init_duration)
 
@@ -274,6 +296,35 @@ def create_sd_config_table():
     dpg.add_table_column(label="Año Offline", width_fixed=True, init_width_or_weight=80)
     dpg.add_table_column(label="Mes Offline", width_fixed=True, init_width_or_weight=80)
     dpg.add_table_column(label="Dia Offline", width_fixed=True, init_width_or_weight=80)
+
+def today_date(sender, app_data, user_data):
+    now = datetime.now()
+    dpg.set_value(user_data[0], now.year)
+    dpg.set_value(user_data[1], now.month)
+    dpg.set_value(user_data[2], now.day)
+    dpg.set_value(user_data[3], now.hour)
+    dpg.set_value(user_data[4], now.minute)
+
+def counter_minutes(sender, app_data, user_data):
+    #pdb.set_trace()
+    hour = dpg.get_value(user_data[0])
+    hour = safe_str_to_int(hour)
+
+    minute = dpg.get_value(user_data[1])
+    minute = safe_str_to_int(minute)
+
+    minute += 1
+    if minute == 60:
+        hour += 1
+        minute = 0
+    dpg.set_value(user_data[0], hour)
+    dpg.set_value(user_data[1], minute)
+
+
+def safe_str_to_int(str_num):
+    if not str_num.isdigit() or str_num == "" or str_num is None:
+        return 0
+    return int(str_num)
 
 
 # Función para ejecutar el comando y registrar en la tabla
