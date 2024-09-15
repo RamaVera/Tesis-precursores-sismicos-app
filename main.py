@@ -126,10 +126,20 @@ def main():
                         with dpg.group():
                             with dpg.group(horizontal=True):
                                 dpg.add_text("Wifi Red")
-                                esp32_wifi_name = dpg.add_input_text(label="", width=50, hint="", tag=TAG_ESP_SD_WIFI)
+                                esp32_wifi_name = dpg.add_input_text(label="", width=75, hint="", tag=TAG_ESP_SD_WIFI)
                             with dpg.group(horizontal=True):
                                 dpg.add_text("Wifi Password")
-                                esp32_wifi_pass = dpg.add_input_text(label="", width=50, hint="", tag=TAG_ESP_SD_WIFI_PASS)
+                                esp32_wifi_pass = dpg.add_input_text(label="", width=75, hint="", tag=TAG_ESP_SD_WIFI_PASS)
+                            dpg.add_text("")
+                            with dpg.group(horizontal=True):
+                                dpg.add_text("Offline Year")
+                                esp32_year_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_YEAR)
+                            with dpg.group(horizontal=True):
+                                dpg.add_text("Offline Month")
+                                esp32_month_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_MONTH)
+                            with dpg.group(horizontal=True):
+                                dpg.add_text("Offline Day")
+                                esp32_day_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_DAY)
 
                         with dpg.group():
                             with dpg.group(horizontal=True):
@@ -144,18 +154,10 @@ def main():
                             with dpg.group(horizontal=True):
                                 dpg.add_text("MQTT Port")
                                 esp32_port = dpg.add_input_text(label="", width=200, hint=str(default_mqtt_port), tag=TAG_ESP_SD_MQTT_PORT)
-                            dpg.add_text("Usar misma configuracion del broker (requiere conexion previa)")
-                            dpg.add_checkbox(label="", default_value=False, tag=TAG_ESP_SD_SAME_BROKER)
-                        with dpg.group():
+                            dpg.add_text("Usar misma configuracion del broker")
                             with dpg.group(horizontal=True):
-                                dpg.add_text("Offline Year")
-                                esp32_year_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_YEAR)
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("Offline Month")
-                                esp32_month_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_MONTH)
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("Offline Day")
-                                esp32_day_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_DAY)
+                                dpg.add_text("(requiere conexion previa)")
+                                dpg.add_checkbox(label="", default_value=False, callback=same_as_broker, tag=TAG_ESP_SD_SAME_BROKER)
 
                         with dpg.group():
                             dpg.add_button(label="Guardar configuracion", callback=save_config)
@@ -390,6 +392,13 @@ def connect_to_sd(sender, app_data, user_data):
         print(traceback.format_exc())
         print(f"SD: {sd}")
 
+def same_as_broker(sender, app_data, user_data):
+    if dpg.get_value(TAG_ESP_SD_SAME_BROKER):
+        dpg.set_value(TAG_ESP_SD_MQTT_BROKER, dpg.get_value(TAG_MQTT_BROKER))
+        dpg.set_value(TAG_ESP_SD_MQTT_USER, dpg.get_value(TAG_MQTT_USER))
+        dpg.set_value(TAG_ESP_SD_MQTT_PASSWORD, dpg.get_value(TAG_MQTT_PASS))
+        dpg.set_value(TAG_ESP_SD_MQTT_PORT, dpg.get_value(TAG_MQTT_PORT))
+
 def save_config(sender, app_data, user_data):
     global config_table
     sd = dpg.get_value(TAG_SD_PATH)
@@ -413,11 +422,7 @@ def save_config(sender, app_data, user_data):
 
             shutil.move(os.path.join(sd, 'config.txt'), os.path.join(sd, old_file_name))
 
-        if dpg.get_value(TAG_ESP_SD_SAME_BROKER):
-            dpg.set_value(TAG_ESP_SD_MQTT_BROKER, dpg.get_value(TAG_MQTT_BROKER))
-            dpg.set_value(TAG_ESP_SD_MQTT_USER, dpg.get_value(TAG_MQTT_USER))
-            dpg.set_value(TAG_ESP_SD_MQTT_PASSWORD, dpg.get_value(TAG_MQTT_PASS))
-            dpg.set_value(TAG_ESP_SD_MQTT_PORT, dpg.get_value(TAG_MQTT_PORT))
+        same_as_broker(sender, app_data, user_data)
 
         # Crea un nuevo archivo con nuevos parámetros
         new_params = f"{dpg.get_value(TAG_ESP_SD_WIFI)} | " \
