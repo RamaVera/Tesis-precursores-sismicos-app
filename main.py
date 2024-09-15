@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 import traceback
 import struct
 import re
+import ssl
+from paho.mqtt import client as mqtt_client
+import os
 
 # Definir constantes para los tags de los widgets
 TAG_YEAR_INPUT_START = "year_input_start"
@@ -28,15 +31,26 @@ TAG_DAY_INPUT_START_DUR = "day_input_start_dur"
 TAG_HOUR_INPUT_START_DUR = "hour_input_start_dur"
 TAG_MINUTE_INPUT_START_DUR = "minute_input_start_dur"
 
+TAG_MQTT_BROKER = "mqtt_broker"
+TAG_MQTT_PORT = "mqtt_port"
+TAG_MQTT_USER = "mqtt_user"
+TAG_MQTT_PASS = "mqtt_pass"
+
 # Identificadores de los inputs
 year_input_start, month_input_start, day_input_start, hour_input_start, minute_input_start = "", "", "", "", ""
 year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end = "", "", "", "", ""
 duration_hour_input, duration_minute_input = "", ""
 state_label, table = "", ""
+mqtt_broker, mqtt_port, mqtt_user, mqtt_pass = "", "", "", ""
 
 # Configuración del broker MQTT
-MQTT_BROKER = "broker.emqx.io"
-MQTT_PORT = 1883
+# MQTT_BROKER = "broker.emqx.io"
+# MQTT_PORT = 1883
+default_mqtt_broker = "7456a1a52e1e4483b09a0fd1fd8e7ead.s1.eu.hivemq.cloud"
+default_mqtt_port = 8883
+default_mqtt_user = "Ramiro"
+default_mqtt_password = "Ramiro99"
+
 
 # Temas MQTT
 TOPIC_COMMAND = "tesis/commands"
@@ -45,11 +59,41 @@ TOPIC_RESPONSE = "tesis/data"
 # Cliente MQTT
 mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id="myPy", protocol=mqtt.MQTTv5)
 
+
+def read_config_files():
+    # Aquí debes poner la ruta a tu tarjeta SD
+    sd_path = "/ruta/a/tu/sd"
+    config_files = [f for f in os.listdir(sd_path) if f.endswith('.txt')]
+    data = []
+    for file in config_files:
+        with open(os.path.join(sd_path, file), 'r') as f:
+            line = f.readline().strip()
+            data.append(line.split(' | '))
+    return data
+
+def update_table(sender, app_data):
+    data = read_config_files()
+    dpg.clear_table("ConfigTable")
+    for row in data:
+        dpg.add_row("ConfigTable", row)
+
+def save_new_config(sender, app_data):
+    # Aquí debes poner la ruta a tu tarjeta SD
+    sd_path = "/ruta/a/tu/sd"
+    new_config = dpg.get_value("NewConfigInput")
+    with open(os.path.join(sd_path, 'new_config.txt'), 'w') as f:
+        f.write(new_config)
+    update_table(sender, app_data)
+
+
+
+
 def main():
     global year_input_start, month_input_start, day_input_start, hour_input_start, minute_input_start
     global year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end
     global duration_hour_input, duration_minute_input
     global state_label, table
+    global mqtt_broker, mqtt_port, mqtt_user, mqtt_pass
 
     # Obtener el tamaño de la pantalla
     monitor = get_monitors()[0]
@@ -67,12 +111,32 @@ def main():
     with dpg.window(label="Tesis Precursores Sismicos", width=window_width + 20, height=window_height + 60):
         dpg.add_tab_bar()
         with dpg.tab_bar():
-            with dpg.tab(label="Conexión"):
-                # Configurar el layout de la ventana de conexión
+            with dpg.tab(label="Configurar SD"):
+                dpg.add_text("SD Desconectada")
                 with dpg.child_window(width=window_width // 2 - 10, height=window_height // 2 - 10):
-                    dpg.add_text("Conexión al Broker")
+                    dpg.add_text("Conexion al Broker")
+
+            with dpg.tab(label="Configuracion Broker"):
+                # Configurar el layout de la ventana de conexión
+                with dpg.child_window(width=window_width // 1 - 10, height=window_height // 1 - 10):
+                    dpg.add_text("Conexion al Broker")
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("Broker")
+                        mqtt_broker = dpg.add_input_text(width=400, hint=default_mqtt_broker, tag=TAG_MQTT_BROKER)
+
+                        dpg.add_text("- Puerto")
+                        mqtt_port = dpg.add_input_text(width=50, hint=str(default_mqtt_port), tag=TAG_MQTT_PORT)
+
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("Usuario")
+                        mqtt_user = dpg.add_input_text(width=100, hint=default_mqtt_user , tag=TAG_MQTT_USER)
+
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("Contraseña")
+                        mqtt_pass = dpg.add_input_text(width=100, hint= default_mqtt_password, tag=TAG_MQTT_PASS)
+
                     dpg.add_button(label="Conectar", callback=connect_to_broker)
-                    state_label = dpg.add_text("Desconectado", color=[255, 0, 0])
+                    state_label = dpg.add_text("Desconectado", color=[0, 0, 255])
 
             with dpg.tab(label="Comandos"):
                 # Configurar el layout de la ventana de comandos
@@ -80,6 +144,7 @@ def main():
                     with dpg.group():
                         # Widget para ingresar fechas (ARRIBA IZQUIERDA)
                         with dpg.child_window(width=window_width // 2 - 10, height=window_height // 2 - 10):
+                            dpg.add_text("Ingrese Fecha para obtener datos")
                             dpg.add_tab_bar()
                             with dpg.tab_bar():
                                 with dpg.tab(label="Inicio y Fin"):
@@ -140,6 +205,8 @@ def main():
                         with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
                             dpg.add_text("Gráfico de Broker")
                             dpg.add_plot(label="Datos del Broker eje z", height=-1)
+
+
 
     dpg.create_viewport(title='Tesis Precursores Sismicos', width=window_width + 35, height=window_height + 100)
     dpg.setup_dearpygui()
@@ -241,6 +308,19 @@ def publish_command(topic, message):
     mqtt_client.publish(topic, message, 0, properties=properties);
 
 def connect_to_broker(sender, app_data, user_data):
+    usr = dpg.get_value(TAG_MQTT_USER)
+    if usr == "":
+        usr = default_mqtt_user
+    password = dpg.get_value(TAG_MQTT_PASS)
+    if password == "":
+        password = default_mqtt_password
+    broker = dpg.get_value(TAG_MQTT_BROKER)
+    if broker == "":
+        broker = default_mqtt_broker
+    port = dpg.get_value(TAG_MQTT_PORT)
+    if port == "":
+        port = default_mqtt_port
+
     try:
         mqtt_client.on_message = on_message
         mqtt_client.on_connect = on_connect
@@ -250,29 +330,41 @@ def connect_to_broker(sender, app_data, user_data):
         from paho.mqtt.packettypes import PacketTypes
         properties = Properties(PacketTypes.CONNECT)
         properties.SessionExpiryInterval = 30 * 60  # in seconds
-        mqtt_client.connect(MQTT_BROKER,
-                            port=MQTT_PORT,
+
+        # enable TLS for secure connection
+        mqtt_client.tls_set(tls_version=ssl.PROTOCOL_TLS)        # set username and password
+        mqtt_client.username_pw_set(usr, password)
+        mqtt_client.connect(broker,
+                            port,
                             clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
                             properties=properties,
                             keepalive=60)
-
-        # Configurar la interfaz de usuario para indicar la conexión exitosa
-        dpg.set_value(state_label, "Conectado")
-        dpg.configure_item(state_label, color=[0, 255, 0])
 
         mqtt_client.loop_start()
 
     except Exception as e:
         print(f"Se produjo un error al conectar: {e}")
         print(traceback.format_exc())
+        print(f"Broker: {broker}")
+        print(f"Port: {port}")
+        print(f"User: {usr}")
+        print(f"Password: {password}")
+
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
     print(f"Conexión con reason: {reason_code} - flags: {flags} y properties: {properties}")
     if reason_code == "Success":
+        # Configurar la interfaz de usuario para indicar la conexión exitosa
+        dpg.set_value(state_label, "Conectado")
+        dpg.configure_item(state_label, color=[0, 255, 0])
+
         print("Conexión exitosa")
         mqtt_client.subscribe(TOPIC_RESPONSE)
     else:
+        # Configurar la interfaz de usuario para indicar la conexión exitosa
+        dpg.set_value(state_label, "Error al conectarse")
+        dpg.configure_item(state_label, color=[255, 0, 0])
         print(f"Error al conectar: {reason_code}")
 
 
@@ -280,30 +372,38 @@ def on_message(client, userdata, message):
     msg = message.payload.decode("utf-8")
     decode_message(msg)
 
-def decode_message(msg):
-    if "error" in msg:
+def decode_message(messages):
+    if "error" in messages:
         print("Se detectó un error de lectura.")
     else:
-        match = re.search(r'(\d{2}):(\d{2})', msg)
+        match = re.search(r'(\d{2}):(\d{2})', messages)
         if match:
             hour, minute = map(int, match.groups())
             print(f"Hora: {hour}, Minuto: {minute}")
         else:
-            sensor_data = msg.split("\n")[0]
+            # Abre el archivo en modo de escritura
+            with open('sensor_data.txt', 'a') as file:
+                # Supongamos que 'messages' es una lista de tus mensajes
+                sensor_data = messages.split("\n")
+                for msg in sensor_data:
+                    # Verifica si el mensaje contiene el carácter "|"
+                    if "|" in msg:
+                        # Divide el mensaje en el número de muestra y los datos del sensor
+                        sample_number, sensor_data = msg.split("|")
 
-            # Convertimos la cadena hexadecimal a bytes
-            data_bytes = bytes.fromhex(sensor_data.strip())
+                        # Convierte la cadena hexadecimal en bytes
+                        data_bytes = bytes.fromhex(sensor_data.strip())
 
-            # Desempaquetamos los datos
-            mpu_accelX, mpu_accelY, mpu_accelZ, adc_adcX, adc_adcY, adc_adcZ = struct.unpack('HHHHHH', data_bytes)
+                        # Desempaqueta los datos
+                        mpu_accelX, mpu_accelY, mpu_accelZ, adc_adcX, adc_adcY, adc_adcZ = struct.unpack('HHHHHH', data_bytes)
 
-            # Ahora puedes usar estos valores para recrear tus estructuras
-            mpu_data = {'accelX': mpu_accelX, 'accelY': mpu_accelY, 'accelZ': mpu_accelZ}
-            adc_data = {'adcX': adc_adcX, 'adcY': adc_adcY, 'adcZ': adc_adcZ}
-            sd_data = {'mpuData': mpu_data, 'adcData': adc_data}
+                        # Ahora puedes usar estos valores para recrear tus estructuras
+                        mpu_data = {'accelX': mpu_accelX, 'accelY': mpu_accelY, 'accelZ': mpu_accelZ}
+                        adc_data = {'adcX': adc_adcX, 'adcY': adc_adcY, 'adcZ': adc_adcZ}
+                        sd_data = {'mpuData': mpu_data, 'adcData': adc_data}
 
-            print(f"Datos del sensor: {sd_data}")
-
+                        # Escribe los datos en el archivo
+                        file.write(f"Sample {sample_number}: {sd_data}\n")
 
 def on_subscribe(client, userdata, mid, reason_codes, properties):
     print(f"Suscripción con reason: {reason_codes} - mid {mid} y properties: {properties}")
