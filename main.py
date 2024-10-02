@@ -61,14 +61,14 @@ broker_state_label, commands_table, config_state, config_table= "", "", "", ""
 mqtt_broker, mqtt_port, mqtt_user, mqtt_pass = "", "", "", ""
 sd_path = ""
 esp32_wifi_name, esp32_wifi_pass, esp32_broker, esp32_port, esp32_usr, esp32_pass, esp32_year_offline, esp32_month_offline, esp32_day_offline = "", "", "", "", "", "", "", "", ""
+mpu_x_axis_x, y_axis_id, z_axis_id = "", "", ""
 
-# Configuración del broker MQTT
-# MQTT_BROKER = "broker.emqx.io"
-# MQTT_PORT = 1883
-default_mqtt_broker = "7456a1a52e1e4483b09a0fd1fd8e7ead.s1.eu.hivemq.cloud"
-default_mqtt_port = 8883
-default_mqtt_user = "Ramiro"
-default_mqtt_password = "Ramiro99"
+# default_mqtt_broker = "7456a1a52e1e4483b09a0fd1fd8e7ead.s1.eu.hivemq.cloud"
+#default_mqtt_port = 8883
+default_mqtt_port = ""
+default_mqtt_broker = ""
+default_mqtt_user = ""
+default_mqtt_password = ""
 default_sd_path = "E:\\"
 
 
@@ -87,6 +87,7 @@ def main():
     global mqtt_broker, mqtt_port, mqtt_user, mqtt_pass
     global sd_path
     global esp32_wifi_name, esp32_wifi_pass, esp32_broker, esp32_port, esp32_usr, esp32_pass, esp32_year_offline, esp32_month_offline, esp32_day_offline
+    global mpu_x_axis_x, y_axis_id, z_axis_id
 
     # Obtener el tamaño de la pantalla
     monitor = get_monitors()[0]
@@ -104,87 +105,112 @@ def main():
     with dpg.window(label="Tesis Precursores Sismicos", width=window_width + 20, height=window_height + 60):
         dpg.add_tab_bar()
         with dpg.tab_bar():
-            with dpg.tab(label="Configurar SD"):
-                # Widget para ingresar fechas (ARRIBA IZQUIERDA)
-                with dpg.child_window(width=window_width // 1 - 10, height=window_height // 4 - 10):
-                    dpg.add_text("Conexion al SD")
-                    with dpg.group(horizontal=True):
-                        dpg.add_text("Ruta SD")
-                        sd_path = dpg.add_input_text(width=400, hint=default_sd_path, tag=TAG_SD_PATH)
+            with dpg.tab(label="Configuracion"):
+                with dpg.group(horizontal=True):
+                    with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
+                        dpg.add_text("Conexion al Broker")
+                        with dpg.group(horizontal=True):
+                            dpg.add_text("Broker")
+                            mqtt_broker = dpg.add_input_text(width=200, hint=default_mqtt_broker, tag=TAG_MQTT_BROKER)
 
-                    dpg.add_button(label="Conectar", callback=connect_to_sd)
-                    config_state = dpg.add_text("Desconectado", color=[0, 0, 255])
+                            dpg.add_text("- Puerto")
+                            mqtt_port = dpg.add_input_text(width=50, hint=str(default_mqtt_port), tag=TAG_MQTT_PORT)
 
-                # Tabla para comandos ingresados (ABAJO IZQUIERDA)
+                        with dpg.group(horizontal=True):
+                            dpg.add_text("Usuario")
+                            mqtt_user = dpg.add_input_text(width=100, hint=default_mqtt_user, tag=TAG_MQTT_USER)
+
+                        with dpg.group(horizontal=True):
+                            dpg.add_text("Contraseña")
+                            mqtt_pass = dpg.add_input_text(width=100, hint=default_mqtt_password, tag=TAG_MQTT_PASS)
+
+                        dpg.add_button(label="Conectar", callback=connect_to_broker)
+                        broker_state_label = dpg.add_text("Desconectado", color=[0, 0, 255])
+
+                    with dpg.child_window(width=window_width // 4 - 10, height=window_height // 3 - 10):
+                        dpg.add_text("Conexion al SD")
+                        with dpg.group(horizontal=True):
+                            dpg.add_text("Ruta SD")
+                            sd_path = dpg.add_input_text(width=100, hint=default_sd_path, tag=TAG_SD_PATH)
+
+                        dpg.add_button(label="Conectar", callback=connect_to_sd)
+                        config_state = dpg.add_text("Desconectado", color=[0, 0, 255])
+
+                    with dpg.child_window(width=window_width // 4 - 10, height=window_height // 3 - 10):
+                        dpg.add_text("Configuracion desde SD")
+                        with dpg.texture_registry(show=False):
+                            width, height, channels, data = dpg.load_image("fromSD.png")
+                            dpg.add_dynamic_texture(width=width,
+                                                    height=height,
+                                                    default_value=data,
+                                                    tag="ch1_on")
+                        dpg.add_image_button(texture_tag="ch1_on",
+                                             label="CH1",
+                                             width=75,
+                                             height=75,
+                                             frame_padding=10,
+                                             callback=get_config,
+                                             user_data="",
+                                             pos=(65, 50))
+
                 with dpg.child_window(width=window_width // 1 - 10, height=window_height // 3 - 10):
                     dpg.add_text("Configuracion activas")
                     with dpg.table(header_row=True, resizable=True, policy=dpg.mvTable_SizingFixedFit) as config_table:
                         create_sd_config_table()
 
-                with dpg.child_window(width=window_width // 1 - 10, height=window_height // 3 - 10):
-                    dpg.add_text("Crear nueva configuracion")
-                    with dpg.group(horizontal=True):
-                        with dpg.group():
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("Wifi Red")
-                                esp32_wifi_name = dpg.add_input_text(label="", width=75, hint="", tag=TAG_ESP_SD_WIFI)
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("Wifi Password")
-                                esp32_wifi_pass = dpg.add_input_text(label="", width=75, hint="", tag=TAG_ESP_SD_WIFI_PASS)
-                            dpg.add_text("")
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("Offline Year")
-                                esp32_year_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_YEAR)
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("Offline Month")
-                                esp32_month_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_MONTH)
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("Offline Day")
-                                esp32_day_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_DAY)
+                with dpg.group(horizontal=True):
+                    with dpg.child_window(width= int(window_width * 0.75) - 10, height=window_height // 3 - 10):
+                        dpg.add_text("Crear nueva configuracion")
+                        with dpg.group(horizontal=True):
+                            with dpg.group():
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("Wifi Red")
+                                    esp32_wifi_name = dpg.add_input_text(label="", width=75, hint="", tag=TAG_ESP_SD_WIFI)
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("Wifi Password")
+                                    esp32_wifi_pass = dpg.add_input_text(label="", width=75, hint="", tag=TAG_ESP_SD_WIFI_PASS)
+                                dpg.add_text("")
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("Offline Year")
+                                    esp32_year_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_YEAR)
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("Offline Month")
+                                    esp32_month_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_MONTH)
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("Offline Day")
+                                    esp32_day_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_DAY)
 
-                        with dpg.group():
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("MQTT Broker")
-                                esp32_broker = dpg.add_input_text(label="", width=400, hint=default_mqtt_broker, tag=TAG_ESP_SD_MQTT_BROKER)
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("MQTT User")
-                                esp32_usr = dpg.add_input_text(label="", width=300, hint=default_mqtt_user, tag=TAG_ESP_SD_MQTT_USER)
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("MQTT Password")
-                                esp32_pass = dpg.add_input_text(label="", width=300, hint=default_mqtt_password, tag=TAG_ESP_SD_MQTT_PASSWORD)
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("MQTT Port")
-                                esp32_port = dpg.add_input_text(label="", width=75, hint=str(default_mqtt_port), tag=TAG_ESP_SD_MQTT_PORT)
-                            dpg.add_text("Usar misma configuracion del broker")
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("(requiere conexion previa)")
-                                dpg.add_checkbox(label="", default_value=False, callback=same_as_broker, tag=TAG_ESP_SD_SAME_BROKER)
+                            with dpg.group():
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("MQTT Broker")
+                                    esp32_broker = dpg.add_input_text(label="", width=400, hint=default_mqtt_broker, tag=TAG_ESP_SD_MQTT_BROKER)
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("MQTT User")
+                                    esp32_usr = dpg.add_input_text(label="", width=300, hint=default_mqtt_user, tag=TAG_ESP_SD_MQTT_USER)
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("MQTT Password")
+                                    esp32_pass = dpg.add_input_text(label="", width=300, hint=default_mqtt_password, tag=TAG_ESP_SD_MQTT_PASSWORD)
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("MQTT Port")
+                                    esp32_port = dpg.add_input_text(label="", width=75, hint=str(default_mqtt_port), tag=TAG_ESP_SD_MQTT_PORT)
 
-                        with dpg.group():
-                            dpg.add_button(label="Guardar configuracion", callback=save_config)
-
-
-            with dpg.tab(label="Configuracion Broker"):
-                # Configurar el layout de la ventana de conexión
-                with dpg.child_window(width=window_width // 1 - 10, height=window_height // 1 - 10):
-                    dpg.add_text("Conexion al Broker")
-                    with dpg.group(horizontal=True):
-                        dpg.add_text("Broker")
-                        mqtt_broker = dpg.add_input_text(width=400, hint=default_mqtt_broker, tag=TAG_MQTT_BROKER)
-
-                        dpg.add_text("- Puerto")
-                        mqtt_port = dpg.add_input_text(width=50, hint=str(default_mqtt_port), tag=TAG_MQTT_PORT)
-
-                    with dpg.group(horizontal=True):
-                        dpg.add_text("Usuario")
-                        mqtt_user = dpg.add_input_text(width=100, hint=default_mqtt_user , tag=TAG_MQTT_USER)
-
-                    with dpg.group(horizontal=True):
-                        dpg.add_text("Contraseña")
-                        mqtt_pass = dpg.add_input_text(width=100, hint= default_mqtt_password, tag=TAG_MQTT_PASS)
-
-                    dpg.add_button(label="Conectar", callback=connect_to_broker)
-                    broker_state_label = dpg.add_text("Desconectado", color=[0, 0, 255])
+                    with dpg.child_window(width=window_width // 4 - 10, height=window_height // 3 - 10):
+                        dpg.add_text("Guardar configuracion en SD")
+                        with dpg.texture_registry(show=False):
+                            width, height, channels, data = dpg.load_image("toSD.png")
+                            dpg.add_dynamic_texture(width=width,
+                                                    height=height,
+                                                    default_value=data,
+                                                    tag="ch2_on")
+                        dpg.add_image_button(texture_tag="ch2_on",
+                                             label="CH2",
+                                             width=75,
+                                             height=75,
+                                             frame_padding=10,
+                                             callback=save_config,
+                                             user_data="",
+                                             pos=(65, 50)
+                                             )
 
             with dpg.tab(label="Comandos"):
                 # Configurar el layout de la ventana de comandos
@@ -217,11 +243,7 @@ def main():
                                         day_input_end = dpg.add_input_text(label="-", width=25, hint="DD", tag=TAG_DAY_INPUT_END)
                                         hour_input_end = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_HOUR_INPUT_END)
                                         minute_input_end = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_MINUTE_INPUT_END)
-                                        user_data = [TAG_YEAR_INPUT_END]
-                                        user_data.append(TAG_MONTH_INPUT_END)
-                                        user_data.append(TAG_DAY_INPUT_END)
-                                        user_data.append(TAG_HOUR_INPUT_END)
-                                        user_data.append(TAG_MINUTE_INPUT_END)
+                                        user_data = [TAG_YEAR_INPUT_END, TAG_MONTH_INPUT_END, TAG_DAY_INPUT_END, TAG_HOUR_INPUT_END, TAG_MINUTE_INPUT_END]
                                         dpg.add_button(label="Hoy", callback=today_date, user_data=user_data)
 
                                     dpg.add_button(label="Enviar", callback=send_command_by_init_end)
@@ -234,19 +256,14 @@ def main():
                                         day_input_start = dpg.add_input_text(label="-", width=25, hint="DD", tag=TAG_DAY_INPUT_START_DUR)
                                         hour_input_start = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_HOUR_INPUT_START_DUR)
                                         minute_input_start = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_MINUTE_INPUT_START_DUR)
-                                        user_data = [TAG_YEAR_INPUT_START_DUR]
-                                        user_data.append(TAG_MONTH_INPUT_START_DUR)
-                                        user_data.append(TAG_DAY_INPUT_START_DUR)
-                                        user_data.append(TAG_HOUR_INPUT_START_DUR)
-                                        user_data.append(TAG_MINUTE_INPUT_START_DUR)
+                                        user_data = [TAG_YEAR_INPUT_START_DUR, TAG_MONTH_INPUT_START_DUR, TAG_DAY_INPUT_START_DUR, TAG_HOUR_INPUT_START_DUR, TAG_MINUTE_INPUT_START_DUR]
                                         dpg.add_button(label="Hoy", callback=today_date, user_data=user_data)
 
                                     dpg.add_text("Duracion:")
                                     with dpg.group(horizontal=True):
                                         duration_hour_input = dpg.add_input_text(label=":", width=25, hint="HH", tag=TAG_DURATION_HOUR_INPUT)
                                         duration_minute_input = dpg.add_input_text(label="", width=25, hint="MM", tag=TAG_DURATION_MINUTE_INPUT)
-                                        user_data = [TAG_DURATION_HOUR_INPUT]
-                                        user_data.append(TAG_DURATION_MINUTE_INPUT)
+                                        user_data = [TAG_DURATION_HOUR_INPUT, TAG_DURATION_MINUTE_INPUT]
                                         dpg.add_button(label="+", callback=counter_minutes, user_data=user_data)
 
                                     dpg.add_button(label="Enviar", callback=send_command_by_init_duration)
@@ -260,21 +277,27 @@ def main():
                                 dpg.add_table_column(label="Fecha Fin", width_fixed=True, init_width_or_weight=110)
 
                     with dpg.group():
-                        # Gráfico vacío (ARRIBA DERECHA)
+                        dpg.add_text("Gráfico de Broker")
                         with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
-                            dpg.add_text("Gráfico de Broker")
-                            dpg.add_plot(label="Datos del Broker eje x", height=-1)
+                            plot_id = dpg.add_plot(label="Datos del Broker eje x", height=-1)
+                            dpg.add_plot_axis(dpg.mvXAxis, label="x", parent=plot_id)
+                            mpu_x_axis_x = dpg.add_plot_axis(dpg.mvYAxis, label="y", parent=plot_id, tag="mpu_x_axis_x")
+                            dpg.add_line_series([], [], parent=mpu_x_axis_x, label="MPU X")
+                            #dpg.add_line_series([], [], parent=mpu_x_axis_x, label="ADC X")
 
-                        # Gráfico vacío (ARRIBA DERECHA)
                         with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
-                            dpg.add_text("Gráfico de Broker")
-                            dpg.add_plot(label="Datos del Broker eje y", height=-1)
+                            plot_id = dpg.add_plot(label="Datos del Broker eje y", height=-1)
+                            dpg.add_plot_axis(dpg.mvXAxis, label="x", parent=plot_id)
+                            y_axis_id = dpg.add_plot_axis(dpg.mvYAxis, label="y", parent=plot_id, tag="y_axis_id")
+                            dpg.add_line_series([], [], parent=y_axis_id, label="MPU Y")
+                            #dpg.add_line_series([], [], parent=y_axis_id, label="ADC Y")
 
-                        # Gráfico vacío (ARRIBA DERECHA)
                         with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
-                            dpg.add_text("Gráfico de Broker")
-                            dpg.add_plot(label="Datos del Broker eje z", height=-1)
-
+                            plot_id = dpg.add_plot(label="Datos del Broker eje z", height=-1)
+                            dpg.add_plot_axis(dpg.mvXAxis, label="x", parent=plot_id)
+                            z_axis_id = dpg.add_plot_axis(dpg.mvYAxis, label="y", parent=plot_id, tag="z_axis_id")
+                            dpg.add_line_series([], [], parent=z_axis_id, label="MPU Z")
+                            #dpg.add_line_series([], [], parent=z_axis_id, label="ADC Z")
 
 
     dpg.create_viewport(title='Tesis Precursores Sismicos', width=window_width + 35, height=window_height + 100)
@@ -319,7 +342,6 @@ def counter_minutes(sender, app_data, user_data):
         minute = 0
     dpg.set_value(user_data[0], hour)
     dpg.set_value(user_data[1], minute)
-
 
 def safe_str_to_int(str_num):
     if not str_num.isdigit() or str_num == "" or str_num is None:
@@ -417,10 +439,17 @@ def publish_command(topic, message):
     mqtt_client.publish(topic, message, 0, properties=properties);
 
 def connect_to_sd(sender, app_data, user_data):
+    global config_table
     sd = dpg.get_value(TAG_SD_PATH)
     if sd == "":
         sd = default_sd_path
-
+    # Almacena el ID del contenedor padre
+    parent_id = dpg.get_item_parent(config_table)
+    # Primero, elimina la tabla
+    dpg.delete_item(config_table)
+    # Luego, vuelve a crear la tabla en el mismo contenedor padre
+    with dpg.table(header_row=True, resizable=True, policy=dpg.mvTable_SizingFixedFit, parent=parent_id) as config_table:
+        create_sd_config_table()
     try:
         config_files = [f for f in os.listdir(sd) if f.endswith('.txt')]
         for file in config_files:
@@ -442,13 +471,6 @@ def connect_to_sd(sender, app_data, user_data):
         print(f"Se produjo un error al conectar: {e}")
         print(traceback.format_exc())
         print(f"SD: {sd}")
-
-def same_as_broker(sender, app_data, user_data):
-    if dpg.get_value(TAG_ESP_SD_SAME_BROKER):
-        dpg.set_value(TAG_ESP_SD_MQTT_BROKER, dpg.get_value(TAG_MQTT_BROKER))
-        dpg.set_value(TAG_ESP_SD_MQTT_USER, dpg.get_value(TAG_MQTT_USER))
-        dpg.set_value(TAG_ESP_SD_MQTT_PASSWORD, dpg.get_value(TAG_MQTT_PASS))
-        dpg.set_value(TAG_ESP_SD_MQTT_PORT, dpg.get_value(TAG_MQTT_PORT))
 
 def save_config(sender, app_data, user_data):
     global config_table
@@ -473,7 +495,9 @@ def save_config(sender, app_data, user_data):
 
             shutil.move(os.path.join(sd, 'config.txt'), os.path.join(sd, old_file_name))
 
-        same_as_broker(sender, app_data, user_data)
+            # Remuevo archivo .dat
+            if os.path.exists(os.path.join(sd, 'config.dat')):
+                os.remove(os.path.join(sd, 'config.dat'))
 
         # Crea un nuevo archivo con nuevos parámetros
         new_params = f"{dpg.get_value(TAG_ESP_SD_WIFI)} | " \
@@ -506,14 +530,52 @@ def save_config(sender, app_data, user_data):
         print(traceback.format_exc())
         print(f"SD: {sd}")
 
+def get_config(sender, app_data, user_data):
+    global config_table
+    sd = dpg.get_value(TAG_SD_PATH)
+    if sd == "":
+        sd = default_sd_path
+
+    try:
+        # Obtén la fecha de creación del archivo
+        if not os.path.exists(os.path.join(sd, "config.txt")):
+            raise Exception("Archivo de configuración no encontrado")
+
+        with open(os.path.join(sd, 'config.txt'), 'r') as f:
+            dpg.set_value(config_state, "SD encontrada")
+            dpg.configure_item(config_state, color=[0, 255, 0])
+            line = f.readline().strip()
+            data = line.split(' | ')
+            dpg.set_value(TAG_ESP_SD_WIFI, data[0])
+            dpg.set_value(TAG_ESP_SD_WIFI_PASS, data[1])
+            dpg.set_value(TAG_ESP_SD_MQTT_BROKER, data[2])
+            dpg.set_value(TAG_ESP_SD_MQTT_USER, data[3])
+            dpg.set_value(TAG_ESP_SD_MQTT_PASSWORD, data[4])
+            dpg.set_value(TAG_ESP_SD_MQTT_PORT, data[5])
+            dpg.set_value(TAG_ESP_SD_OFFLINE_YEAR, data[6])
+            dpg.set_value(TAG_ESP_SD_OFFLINE_MONTH, data[7])
+            dpg.set_value(TAG_ESP_SD_OFFLINE_DAY, data[8])
+
+            dpg.set_value(TAG_MQTT_BROKER, data[2])
+            dpg.set_value(TAG_MQTT_PORT, data[5])
+            dpg.set_value(TAG_MQTT_USER, data[3])
+            dpg.set_value(TAG_MQTT_PASS, data[4])
+
+    except Exception as e:
+        dpg.set_value(config_state, "SD no encontrada")
+        dpg.configure_item(config_state, color=[255, 0, 0])
+        print(f"Se produjo un error al conectar: {e}")
+        print(traceback.format_exc())
+        print(f"SD: {sd}")
+
 def connect_to_broker(sender, app_data, user_data):
     usr = dpg.get_value(TAG_MQTT_USER)
     if usr == "":
-        usr = default_mqtt_user
+        usr = ""
         dpg.set_value(TAG_MQTT_USER, usr)
     password = dpg.get_value(TAG_MQTT_PASS)
     if password == "":
-        password = default_mqtt_password
+        password = ""
         dpg.set_value(TAG_MQTT_PASS, password)
     broker = dpg.get_value(TAG_MQTT_BROKER)
     if broker == "":
@@ -523,7 +585,8 @@ def connect_to_broker(sender, app_data, user_data):
     if port == "":
         port = default_mqtt_port
         dpg.set_value(TAG_MQTT_PORT, port)
-
+    else:
+        port = int(port)
     try:
         mqtt_client.on_message = on_message
         mqtt_client.on_connect = on_connect
@@ -535,8 +598,10 @@ def connect_to_broker(sender, app_data, user_data):
         properties.SessionExpiryInterval = 30 * 60  # in seconds
 
         # enable TLS for secure connection
-        mqtt_client.tls_set(tls_version=ssl.PROTOCOL_TLS)        # set username and password
-        mqtt_client.username_pw_set(usr, password)
+        if usr != "":
+            mqtt_client.tls_set(tls_version=ssl.PROTOCOL_TLS)  # set username and password
+            mqtt_client.username_pw_set(usr, password)
+
         mqtt_client.connect(broker,
                             port,
                             clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
@@ -572,6 +637,36 @@ def on_message(client, userdata, message):
     msg = message.payload.decode("utf-8")
     decode_message(msg)
 
+
+# Listas para almacenar los datos de las muestras
+mpu_accelX_data = []
+mpu_accelY_data = []
+mpu_accelZ_data = []
+adc_adcX_data = []
+adc_adcY_data = []
+adc_adcZ_data = []
+
+def replot_graphs(mpu_accelX, mpu_accelY, mpu_accelZ, adc_adcX, adc_adcY, adc_adcZ):
+    mpu_accelX_data.append(mpu_accelX)
+    mpu_accelY_data.append(mpu_accelY)
+    mpu_accelZ_data.append(mpu_accelZ)
+    adc_adcX_data.append(adc_adcX)
+    adc_adcY_data.append(adc_adcY)
+    adc_adcZ_data.append(adc_adcZ)
+
+    dots = list(range(len(mpu_accelX_data)))
+
+    # Actualiza las series de datos de los gráficos
+    dpg.add_line_series(dots, mpu_accelX_data, parent=mpu_x_axis_x, label="MPU X")
+    #dpg.add_line_series(dots, adc_adcX_data, parent=mpu_x_axis_x, label="ADC X")
+    dpg.add_line_series(dots, mpu_accelY_data, parent=y_axis_id, label="MPU Y")
+    ##dpg.add_line_series(dots, adc_adcY_data, parent=y_axis_id, label="ADC Y")
+    dpg.add_line_series(dots, mpu_accelZ_data, parent=z_axis_id, label="MPU Z")
+    #dpg.add_line_series(dots, adc_adcZ_data, parent=z_axis_id, label="ADC Z")
+    dpg.fit_axis_data("mpu_x_axis_x")
+    dpg.fit_axis_data("y_axis_id")
+    dpg.fit_axis_data("z_axis_id")
+
 def decode_message(messages):
     if "error" in messages:
         print("Se detectó un error de lectura.")
@@ -581,29 +676,26 @@ def decode_message(messages):
             hour, minute = map(int, match.groups())
             print(f"Hora: {hour}, Minuto: {minute}")
         else:
-            # Abre el archivo en modo de escritura
-            with open('sensor_data.txt', 'a') as file:
-                # Supongamos que 'messages' es una lista de tus mensajes
-                sensor_data = messages.split("\n")
-                for msg in sensor_data:
-                    # Verifica si el mensaje contiene el carácter "|"
-                    if "|" in msg:
-                        # Divide el mensaje en el número de muestra y los datos del sensor
-                        sample_number, sensor_data = msg.split("|")
+            sensor_data = messages.split("\n")
+            for msg in sensor_data:
+                # Verifica si el mensaje contiene el carácter "|"
+                if "|" in msg:
+                    # Divide el mensaje en el número de muestra y los datos del sensor
+                    sample_number, sensor_data = msg.split("|")
 
-                        # Convierte la cadena hexadecimal en bytes
-                        data_bytes = bytes.fromhex(sensor_data.strip())
+                    # Convierte la cadena hexadecimal en bytes
+                    data_bytes = bytes.fromhex(sensor_data.strip())
 
-                        # Desempaqueta los datos
-                        mpu_accelX, mpu_accelY, mpu_accelZ, adc_adcX, adc_adcY, adc_adcZ = struct.unpack('HHHHHH', data_bytes)
+                    # Desempaqueta los datos
+                    mpu_accelX, mpu_accelY, mpu_accelZ, adc_adcX, adc_adcY, adc_adcZ = struct.unpack('HHHHHH', data_bytes)
 
-                        # Ahora puedes usar estos valores para recrear tus estructuras
-                        mpu_data = {'accelX': mpu_accelX, 'accelY': mpu_accelY, 'accelZ': mpu_accelZ}
-                        adc_data = {'adcX': adc_adcX, 'adcY': adc_adcY, 'adcZ': adc_adcZ}
-                        sd_data = {'mpuData': mpu_data, 'adcData': adc_data}
-
-                        # Escribe los datos en el archivo
+                    # Ahora puedes usar estos valores para recrear tus estructuras
+                    mpu_data = {'accelX': mpu_accelX, 'accelY': mpu_accelY, 'accelZ': mpu_accelZ}
+                    adc_data = {'adcX': adc_adcX, 'adcY': adc_adcY, 'adcZ': adc_adcZ}
+                    sd_data = {'mpuData': mpu_data, 'adcData': adc_data}
+                    with open('sensor_data.txt', 'a') as file:
                         file.write(f"Sample {sample_number}: {sd_data}\n")
+                    replot_graphs(mpu_accelX, mpu_accelY, mpu_accelZ, adc_adcX, adc_adcY, adc_adcZ)
 
 def on_subscribe(client, userdata, mid, reason_codes, properties):
     print(f"Suscripción con reason: {reason_codes} - mid {mid} y properties: {properties}")
@@ -614,4 +706,7 @@ def on_subscribe(client, userdata, mid, reason_codes, properties):
         print(f"Error al suscribirse: {reason_codes}")
 
 if __name__ == "__main__":
-    main()
+   main()
+
+
+
