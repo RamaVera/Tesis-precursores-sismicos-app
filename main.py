@@ -461,9 +461,15 @@ def connect_to_sd(sender, app_data, user_data):
                 with dpg.table_row(parent=config_table):
                     # Determinar el estado del archivo y agregarlo como el primer elemento en la fila
                     file_status = "Inactive" if file.endswith('.old.txt') else "Active"
-                    dpg.add_text(file_status)
+                    text_id = dpg.add_text(file_status)
                     for item in data:
                         dpg.add_text(item)
+
+                    # Configurar el color de fondo del texto
+                    if file_status == "Active":
+                        dpg.configure_item(text_id, default_value=file_status, color=(0, 255, 0, 255))  # Verde para activo
+                    else:
+                        dpg.configure_item(text_id, default_value=file_status, color=(255, 0, 0, 255))  # Rojo para inactivo
 
     except Exception as e:
         dpg.set_value(config_state, "SD no encontrada")
@@ -499,12 +505,20 @@ def save_config(sender, app_data, user_data):
             if os.path.exists(os.path.join(sd, 'config.dat')):
                 os.remove(os.path.join(sd, 'config.dat'))
 
+        user = dpg.get_value(TAG_ESP_SD_MQTT_USER)
+        if user == "":
+            user = "xxx"
+
+        password = dpg.get_value(TAG_ESP_SD_MQTT_PASSWORD)
+        if password == "":
+            password = "xxx"
+
         # Crea un nuevo archivo con nuevos parámetros
         new_params = f"{dpg.get_value(TAG_ESP_SD_WIFI)} | " \
                      f"{dpg.get_value(TAG_ESP_SD_WIFI_PASS)} | " \
                      f"{dpg.get_value(TAG_ESP_SD_MQTT_BROKER)} | " \
-                     f"{dpg.get_value(TAG_ESP_SD_MQTT_USER)} | " \
-                     f"{dpg.get_value(TAG_ESP_SD_MQTT_PASSWORD)} | " \
+                     f"{user} | " \
+                     f"{password} | " \
                      f"{dpg.get_value(TAG_ESP_SD_MQTT_PORT)} | " \
                      f"{dpg.get_value(TAG_ESP_SD_OFFLINE_YEAR)} | " \
                      f"{dpg.get_value(TAG_ESP_SD_OFFLINE_MONTH)} | " \
