@@ -2,3 +2,4 @@ dist
 build
 .idea
 main.spec
+sensor_data.txt

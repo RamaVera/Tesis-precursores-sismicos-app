@@ -1,3 +1,5 @@
+import math
+
 import paho.mqtt.client as mqtt
 import dearpygui.dearpygui as dpg
 from screeninfo import get_monitors
@@ -57,20 +59,19 @@ TAG_ESP_SD_SAME_BROKER = "esp32_same_broker"
 year_input_start, month_input_start, day_input_start, hour_input_start, minute_input_start = "", "", "", "", ""
 year_input_end, month_input_end, day_input_end, hour_input_end, minute_input_end = "", "", "", "", ""
 duration_hour_input, duration_minute_input = "", ""
-broker_state_label, commands_table, config_state, config_table= "", "", "", ""
+broker_state_label, commands_table, config_state, config_table = "", "", "", ""
 mqtt_broker, mqtt_port, mqtt_user, mqtt_pass = "", "", "", ""
 sd_path = ""
 esp32_wifi_name, esp32_wifi_pass, esp32_broker, esp32_port, esp32_usr, esp32_pass, esp32_year_offline, esp32_month_offline, esp32_day_offline = "", "", "", "", "", "", "", "", ""
-mpu_x_axis_x, y_axis_id, z_axis_id = "", "", ""
+mpuAccelX_Y, mpuAccelY_Y, mpuAccelZ_Y = "", "", ""
 
 # default_mqtt_broker = "7456a1a52e1e4483b09a0fd1fd8e7ead.s1.eu.hivemq.cloud"
-#default_mqtt_port = 8883
+# default_mqtt_port = 8883
 default_mqtt_port = ""
 default_mqtt_broker = ""
 default_mqtt_user = ""
 default_mqtt_password = ""
 default_sd_path = "E:\\"
-
 
 # Temas MQTT
 TOPIC_COMMAND = "tesis/commands"
@@ -78,6 +79,7 @@ TOPIC_RESPONSE = "tesis/data"
 
 # Cliente MQTT
 mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id="myPy", protocol=mqtt.MQTTv5)
+
 
 def main():
     global year_input_start, month_input_start, day_input_start, hour_input_start, minute_input_start
@@ -87,7 +89,7 @@ def main():
     global mqtt_broker, mqtt_port, mqtt_user, mqtt_pass
     global sd_path
     global esp32_wifi_name, esp32_wifi_pass, esp32_broker, esp32_port, esp32_usr, esp32_pass, esp32_year_offline, esp32_month_offline, esp32_day_offline
-    global mpu_x_axis_x, y_axis_id, z_axis_id
+    global mpuAccelX_Y, mpuAccelY_Y, mpuAccelZ_Y
 
     # Obtener el tamaño de la pantalla
     monitor = get_monitors()[0]
@@ -159,7 +161,7 @@ def main():
                         create_sd_config_table()
 
                 with dpg.group(horizontal=True):
-                    with dpg.child_window(width= int(window_width * 0.75) - 10, height=window_height // 3 - 10):
+                    with dpg.child_window(width=int(window_width * 0.75) - 10, height=window_height // 3 - 10):
                         dpg.add_text("Crear nueva configuracion")
                         with dpg.group(horizontal=True):
                             with dpg.group():
@@ -172,7 +174,7 @@ def main():
                                 dpg.add_text("")
                                 with dpg.group(horizontal=True):
                                     dpg.add_text("Offline Year")
-                                    esp32_year_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_YEAR)
+                                    esp32_year_offline = dpg.add_input_text(label="", width=50, hint="", tag=TAG_ESP_SD_OFFLINE_YEAR)
                                 with dpg.group(horizontal=True):
                                     dpg.add_text("Offline Month")
                                     esp32_month_offline = dpg.add_input_text(label="", width=25, hint="", tag=TAG_ESP_SD_OFFLINE_MONTH)
@@ -273,32 +275,36 @@ def main():
                             dpg.add_text("Comandos Ingresados")
                             with dpg.table(header_row=True, resizable=True, policy=dpg.mvTable_SizingFixedFit) as commands_table:
                                 dpg.add_table_column(label="Fecha y Hora", width_fixed=False, init_width_or_weight=130)
-                                dpg.add_table_column(label="Fecha Inicio",width_fixed=True, init_width_or_weight=110)
+                                dpg.add_table_column(label="Fecha Inicio", width_fixed=True, init_width_or_weight=110)
                                 dpg.add_table_column(label="Fecha Fin", width_fixed=True, init_width_or_weight=110)
 
                     with dpg.group():
                         dpg.add_text("Gráfico de Broker")
+
+                        with dpg.theme(tag="plot_theme"):
+                            with dpg.theme_component(dpg.mvLineSeries):
+                                dpg.add_theme_color(dpg.mvPlotCol_Line, (0, 255, 0), category=dpg.mvThemeCat_Plots)
+
                         with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
                             plot_id = dpg.add_plot(label="Datos del Broker eje x", height=-1)
-                            dpg.add_plot_axis(dpg.mvXAxis, label="x", parent=plot_id)
-                            mpu_x_axis_x = dpg.add_plot_axis(dpg.mvYAxis, label="y", parent=plot_id, tag="mpu_x_axis_x")
-                            dpg.add_line_series([], [], parent=mpu_x_axis_x, label="MPU X")
-                            #dpg.add_line_series([], [], parent=mpu_x_axis_x, label="ADC X")
+                            mpuAccelX_X = dpg.add_plot_axis(dpg.mvXAxis, label="x", parent=plot_id, tag="mpuAccelX_X")
+                            mpuAccelX_Y = dpg.add_plot_axis(dpg.mvYAxis, label="y", parent=plot_id, tag="mpuAccelX_Y")
+                            dpg.add_line_series([], [], parent=mpuAccelX_Y)
+                            # dpg.add_line_series([], [], parent=mpu_x_axis_x, label="ADC X")
 
                         with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
                             plot_id = dpg.add_plot(label="Datos del Broker eje y", height=-1)
-                            dpg.add_plot_axis(dpg.mvXAxis, label="x", parent=plot_id)
-                            y_axis_id = dpg.add_plot_axis(dpg.mvYAxis, label="y", parent=plot_id, tag="y_axis_id")
-                            dpg.add_line_series([], [], parent=y_axis_id, label="MPU Y")
-                            #dpg.add_line_series([], [], parent=y_axis_id, label="ADC Y")
+                            mpuAccelY_X = dpg.add_plot_axis(dpg.mvXAxis, label="x", parent=plot_id, tag="mpuAccelY_X")
+                            mpuAccelY_Y = dpg.add_plot_axis(dpg.mvYAxis, label="y", parent=plot_id, tag="mpuAccelY_Y")
+                            dpg.add_line_series([], [], parent=mpuAccelY_Y)
+                            # dpg.add_line_series([], [], parent=y_axis_id, label="ADC Y")
 
                         with dpg.child_window(width=window_width // 2 - 10, height=window_height // 3 - 10):
                             plot_id = dpg.add_plot(label="Datos del Broker eje z", height=-1)
-                            dpg.add_plot_axis(dpg.mvXAxis, label="x", parent=plot_id)
-                            z_axis_id = dpg.add_plot_axis(dpg.mvYAxis, label="y", parent=plot_id, tag="z_axis_id")
-                            dpg.add_line_series([], [], parent=z_axis_id, label="MPU Z")
-                            #dpg.add_line_series([], [], parent=z_axis_id, label="ADC Z")
-
+                            mpuAccelZ_X = dpg.add_plot_axis(dpg.mvXAxis, label="x", parent=plot_id, tag="mpuAccelZ_X")
+                            mpuAccelZ_Y = dpg.add_plot_axis(dpg.mvYAxis, label="y", parent=plot_id, tag="mpuAccelZ_Y")
+                            dpg.add_line_series([], [], parent=mpuAccelZ_Y)
+                            # dpg.add_line_series([], [], parent=z_axis_id, label="ADC Z")
 
     dpg.create_viewport(title='Tesis Precursores Sismicos', width=window_width + 35, height=window_height + 100)
     dpg.setup_dearpygui()
@@ -320,6 +326,7 @@ def create_sd_config_table():
     dpg.add_table_column(label="Mes Offline", width_fixed=True, init_width_or_weight=80)
     dpg.add_table_column(label="Dia Offline", width_fixed=True, init_width_or_weight=80)
 
+
 def today_date(sender, app_data, user_data):
     now = datetime.now()
     dpg.set_value(user_data[0], now.year)
@@ -328,8 +335,9 @@ def today_date(sender, app_data, user_data):
     dpg.set_value(user_data[3], now.hour)
     dpg.set_value(user_data[4], now.minute)
 
+
 def counter_minutes(sender, app_data, user_data):
-    #pdb.set_trace()
+    # pdb.set_trace()
     hour = dpg.get_value(user_data[0])
     hour = safe_str_to_int(hour)
 
@@ -343,6 +351,7 @@ def counter_minutes(sender, app_data, user_data):
     dpg.set_value(user_data[0], hour)
     dpg.set_value(user_data[1], minute)
 
+
 def safe_str_to_int(str_num):
     if not str_num.isdigit() or str_num == "" or str_num is None:
         return 0
@@ -351,6 +360,10 @@ def safe_str_to_int(str_num):
 
 # Función para ejecutar el comando y registrar en la tabla
 def send_command_by_init_end(sender, app_data, user_data):
+    #for i in range(0, 300):
+    #    replot_graphs(math.sin(i), 1, math.cos(i), 1, math.tan(i), 1)
+    #    time.sleep(0.2)
+    #return
     try:
         start_datetime = user_input_to_datetime(TAG_YEAR_INPUT_START, TAG_MONTH_INPUT_START, TAG_DAY_INPUT_START, TAG_HOUR_INPUT_START, TAG_MINUTE_INPUT_START)
         end_datetime = user_input_to_datetime(TAG_YEAR_INPUT_END, TAG_MONTH_INPUT_END, TAG_DAY_INPUT_END, TAG_HOUR_INPUT_END, TAG_MINUTE_INPUT_END)
@@ -373,6 +386,7 @@ def send_command_by_init_end(sender, app_data, user_data):
     except Exception as e:
         print(f"Se produjo un error: {e}")
         print(traceback.format_exc())
+
 
 def send_command_by_init_duration(sender, app_data, user_data):
     try:
@@ -409,6 +423,7 @@ def send_command_by_init_duration(sender, app_data, user_data):
         print(f"Se produjo un error: {e}")
         print(traceback.format_exc())
 
+
 def user_input_to_datetime(year_input, month_input, day_input, hour_input, minute_input):
     year = dpg.get_value(year_input)
     month = dpg.get_value(month_input)
@@ -426,9 +441,11 @@ def user_input_to_datetime(year_input, month_input, day_input, hour_input, minut
     start_datetime = datetime(year, month, day, hour, minute)
     return start_datetime
 
+
 def to_command(end_datetime, start_datetime):
     command_to_send = f"R {start_datetime.year}-{start_datetime.month}-{start_datetime.day}-{start_datetime.hour}-{start_datetime.minute}-{end_datetime.year}-{end_datetime.month}-{end_datetime.day}-{end_datetime.hour}-{end_datetime.minute}"
     return command_to_send
+
 
 def publish_command(topic, message):
     from paho.mqtt.properties import Properties
@@ -437,6 +454,7 @@ def publish_command(topic, message):
     properties.MessageExpiryInterval = 30  # in seconds
 
     mqtt_client.publish(topic, message, 0, properties=properties);
+
 
 def connect_to_sd(sender, app_data, user_data):
     global config_table
@@ -477,6 +495,7 @@ def connect_to_sd(sender, app_data, user_data):
         print(f"Se produjo un error al conectar: {e}")
         print(traceback.format_exc())
         print(f"SD: {sd}")
+
 
 def save_config(sender, app_data, user_data):
     global config_table
@@ -544,6 +563,7 @@ def save_config(sender, app_data, user_data):
         print(traceback.format_exc())
         print(f"SD: {sd}")
 
+
 def get_config(sender, app_data, user_data):
     global config_table
     sd = dpg.get_value(TAG_SD_PATH)
@@ -581,6 +601,7 @@ def get_config(sender, app_data, user_data):
         print(f"Se produjo un error al conectar: {e}")
         print(traceback.format_exc())
         print(f"SD: {sd}")
+
 
 def connect_to_broker(sender, app_data, user_data):
     usr = dpg.get_value(TAG_MQTT_USER)
@@ -632,6 +653,7 @@ def connect_to_broker(sender, app_data, user_data):
         print(f"User: {usr}")
         print(f"Password: {password}")
 
+
 def on_connect(client, userdata, flags, reason_code, properties):
     print(f"Conexión con reason: {reason_code} - flags: {flags} y properties: {properties}")
     if reason_code == "Success":
@@ -647,6 +669,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
         dpg.configure_item(broker_state_label, color=[255, 0, 0])
         print(f"Error al conectar: {reason_code}")
 
+
 def on_message(client, userdata, message):
     msg = message.payload.decode("utf-8")
     decode_message(msg)
@@ -659,8 +682,13 @@ mpu_accelZ_data = []
 adc_adcX_data = []
 adc_adcY_data = []
 adc_adcZ_data = []
+firstPlotDone = False
+
 
 def replot_graphs(mpu_accelX, mpu_accelY, mpu_accelZ, adc_adcX, adc_adcY, adc_adcZ):
+    global mpuAccelX_Y, mpuAccelY_Y, mpuAccelZ_Y, firstPlotDone
+
+    # Añadir nuevos datos a las listas (sin eliminar datos antiguos)
     mpu_accelX_data.append(mpu_accelX)
     mpu_accelY_data.append(mpu_accelY)
     mpu_accelZ_data.append(mpu_accelZ)
@@ -668,18 +696,45 @@ def replot_graphs(mpu_accelX, mpu_accelY, mpu_accelZ, adc_adcX, adc_adcY, adc_ad
     adc_adcY_data.append(adc_adcY)
     adc_adcZ_data.append(adc_adcZ)
 
-    dots = list(range(len(mpu_accelX_data)))
+    # Generar los puntos de "dots" (eje X) y asegurarse de que crezca continuamente
+    dots_to_plot = list(range(len(mpu_accelX_data)))
 
-    # Actualiza las series de datos de los gráficos
-    dpg.add_line_series(dots, mpu_accelX_data, parent=mpu_x_axis_x, label="MPU X")
-    #dpg.add_line_series(dots, adc_adcX_data, parent=mpu_x_axis_x, label="ADC X")
-    dpg.add_line_series(dots, mpu_accelY_data, parent=y_axis_id, label="MPU Y")
-    ##dpg.add_line_series(dots, adc_adcY_data, parent=y_axis_id, label="ADC Y")
-    dpg.add_line_series(dots, mpu_accelZ_data, parent=z_axis_id, label="MPU Z")
-    #dpg.add_line_series(dots, adc_adcZ_data, parent=z_axis_id, label="ADC Z")
-    dpg.fit_axis_data("mpu_x_axis_x")
-    dpg.fit_axis_data("y_axis_id")
-    dpg.fit_axis_data("z_axis_id")
+    # Si ya existe una serie, eliminarla antes de agregar una nueva
+    if firstPlotDone:
+        dpg.delete_item("linesMPUAccelX")
+        dpg.delete_item("linesMPUAccelY")
+        dpg.delete_item("linesMPUAccelZ")
+
+    # Actualiza las series de datos de los gráficos con un color fijo (por ejemplo, rojo)
+    dpg.add_line_series(dots_to_plot, mpu_accelX_data, parent=mpuAccelX_Y, label="MPU X", tag="linesMPUAccelX")
+    dpg.add_line_series(dots_to_plot, mpu_accelY_data, parent=mpuAccelY_Y, label="MPU Y", tag="linesMPUAccelY")
+    dpg.add_line_series(dots_to_plot, mpu_accelZ_data, parent=mpuAccelZ_Y, label="MPU Z", tag="linesMPUAccelZ")
+
+    dpg.bind_item_theme("linesMPUAccelX", "plot_theme")
+    dpg.bind_item_theme("linesMPUAccelY", "plot_theme")
+    dpg.bind_item_theme("linesMPUAccelZ", "plot_theme")
+
+    firstPlotDone = True
+
+    # Ajustar los ejes para que se adapten automáticamente
+    dpg.fit_axis_data("mpuAccelX_X")
+    dpg.fit_axis_data("mpuAccelX_Y")
+    # dpg.set_axis_limits("mpuAccelX_X", minLimit, maxLimit)
+    #dpg.set_axis_limits_auto("mpuAccelX_X")
+    #dpg.set_axis_limits_auto("mpuAccelX_Y")
+
+    dpg.fit_axis_data("mpuAccelY_X")
+    dpg.fit_axis_data("mpuAccelY_Y")
+    # dpg.set_axis_limits("mpuAccelY_X", minLimit, maxLimit)
+    #dpg.set_axis_limits_auto("mpuAccelY_X")
+    #dpg.set_axis_limits_auto("mpuAccelY_Y")
+
+    dpg.fit_axis_data("mpuAccelZ_X")
+    dpg.fit_axis_data("mpuAccelZ_Y")
+    # dpg.set_axis_limits("mpuAccelZ_X", minLimit, maxLimit)
+    #dpg.set_axis_limits_auto("mpuAccelZ_X")
+    #dpg.set_axis_limits_auto("mpuAccelZ_Y")
+
 
 def decode_message(messages):
     if "error" in messages:
@@ -711,6 +766,7 @@ def decode_message(messages):
                         file.write(f"Sample {sample_number}: {sd_data}\n")
                     replot_graphs(mpu_accelX, mpu_accelY, mpu_accelZ, adc_adcX, adc_adcY, adc_adcZ)
 
+
 def on_subscribe(client, userdata, mid, reason_codes, properties):
     print(f"Suscripción con reason: {reason_codes} - mid {mid} y properties: {properties}")
     if mid == 1:
@@ -719,8 +775,6 @@ def on_subscribe(client, userdata, mid, reason_codes, properties):
     if mid >= 128:
         print(f"Error al suscribirse: {reason_codes}")
 
+
 if __name__ == "__main__":
-   main()
-
-
-
+    main()
